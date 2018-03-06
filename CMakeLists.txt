@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(crazyflie_cpp)
 
-if(${USE_ROS})
+if(DEFINED CATKIN_DEVEL_PREFIX)
   message("Using ROS (catkin_make)")
   include(${CMAKE_CURRENT_SOURCE_DIR}/ROS.cmake)
 else()

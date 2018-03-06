@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(crazyflie_cpp)
-
 find_package(catkin)
-find_library(USB_LIB usb-1.0)
 
+find_library(USB_LIB usb-1.0)
 # Enable C++11
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
@@ -34,8 +33,11 @@ include_directories(
 
 ## Declare a cpp library
 add_library(crazyflie_cpp
+  src/USBDevice.cpp
   src/Crazyradio.cpp
+  src/CrazyflieUSB.cpp
   src/Crazyflie.cpp
+  src/crtp.cpp
 )
 
 ## Specify libraries to link a library or executable target against
