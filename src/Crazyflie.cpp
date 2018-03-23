@@ -842,11 +842,7 @@ void Crazyflie::handleBatchAck(
         return;
       }
     }
-    // handle generic ack
-    handleAck(ack);
-    // crtp c(ack.data[0]);
-    //std::cout << "didnt handle ack " << (int) c.port << " " << (int) c.channel << " " << (int) ack.data[1] << " " << (int) ack.data[2] << std::endl;
-    // TODO: generic handle ack here?
+    // ack is (also) handled in sendPacket
   }
 }
 
