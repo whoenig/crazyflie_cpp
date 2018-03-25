@@ -70,6 +70,26 @@ public:
     TargetNRF51 = 0xFE,
   };
 
+  enum MemoryType {
+    MemoryTypeEEPROM  = 0x00,
+    MemoryTypeOneWire = 0x01,
+    MemoryTypeLED12   = 0x10,
+    MemoryTypeLOCO    = 0x11,
+    MemoryTypeTRAJ    = 0x12,
+  };
+
+  struct MemoryTocEntry {
+    uint8_t id;
+    MemoryType type;
+    uint32_t size;
+    uint64_t addr;
+  };
+
+  struct poly4d {
+    float p[4][8];
+    float duration;
+  } __attribute__((packed));
+
 public:
   Crazyflie(
     const std::string& link_uri);
@@ -116,6 +136,8 @@ public:
 
   void requestParamToc();
 
+  void requestMemoryToc();
+
   std::vector<ParamTocEntry>::const_iterator paramsBegin() const {
     return m_paramTocEntries.begin();
   }
@@ -128,6 +150,13 @@ public:
   }
   std::vector<LogTocEntry>::const_iterator logVariablesEnd() const {
     return m_logTocEntries.end();
+  }
+
+  std::vector<MemoryTocEntry>::const_iterator memoriesBegin() const {
+    return m_memoryTocEntries.begin();
+  }
+  std::vector<MemoryTocEntry>::const_iterator memoriesEnd() const {
+    return m_memoryTocEntries.end();
   }
 
   template<class T>
@@ -213,6 +242,18 @@ public:
   void stop(uint8_t groupMask = 0);
 
   void goTo(float x, float y, float z, float yaw, float duration, bool relative = false, uint8_t groupMask = 0);
+
+  void uploadTrajectoryPieces(
+    uint32_t index,
+    const std::vector<poly4d>& pieces);
+
+  void startTrajectory(
+    uint32_t index,
+    uint8_t n_pieces,
+    float timescale = 1.0,
+    bool reversed = false,
+    bool relative = true,
+    uint8_t groupMask = 0);
 
 private:
   void sendPacket(
@@ -339,6 +380,8 @@ private:
 
   std::vector<ParamTocEntry> m_paramTocEntries;
   std::map<uint8_t, ParamValue> m_paramValues;
+
+  std::vector<MemoryTocEntry> m_memoryTocEntries;
 
   std::function<void(const crtpPlatformRSSIAck*)> m_emptyAckCallback;
   std::function<void(float)> m_linkQualityCallback;

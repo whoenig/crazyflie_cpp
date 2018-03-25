@@ -529,6 +529,38 @@ void Crazyflie::requestParamToc()
   }
 }
 
+void Crazyflie::requestMemoryToc()
+{
+  // Find the number of parameters in TOC
+  crtpMemoryGetNumberRequest infoRequest;
+  startBatchRequest();
+  addRequest(infoRequest, 1);
+  handleRequests();
+  uint8_t len = getRequestResult<crtpMemoryGetNumberResponse>(0)->numberOfMemories;
+
+  std::cout << "Memories: " << (int)len << std::endl;
+
+  // Request detailed information and values
+  startBatchRequest();
+  for (uint8_t i = 0; i < len; ++i) {
+    crtpMemoryGetInfoRequest itemRequest(i);
+    addRequest(itemRequest, 2);
+  }
+  handleRequests();
+
+  // Update internal structure with obtained data
+  m_memoryTocEntries.resize(len);
+  for (uint8_t i = 0; i < len; ++i) {
+    auto info = getRequestResult<crtpMemoryGetInfoResponse>(i);
+
+    MemoryTocEntry& entry = m_memoryTocEntries[i];
+    entry.id = i;
+    entry.type = (MemoryType)info->memType;
+    entry.size = info->memSize;
+    entry.addr = info->memAddr;
+  }
+}
+
 void Crazyflie::setParam(uint8_t id, const ParamValue& value) {
 
   startBatchRequest();
@@ -695,6 +727,12 @@ void Crazyflie::handleAck(
     // handled in batch system
   }
   else if (crtpParamTocGetItemResponse::match(result)) {
+    // handled in batch system
+  }
+  else if (crtpMemoryGetNumberResponse::match(result)) {
+    // handled in batch system
+  }
+  else if (crtpMemoryGetInfoResponse::match(result)) {
     // handled in batch system
   }
   else if (crtpParamValueResponse::match(result)) {
@@ -878,3 +916,42 @@ void Crazyflie::goTo(float x, float y, float z, float yaw, float duration, bool 
   sendPacketOrTimeout((uint8_t*)&req, sizeof(req));
 }
 
+void Crazyflie::uploadTrajectoryPieces(
+  uint32_t index,
+  const std::vector<poly4d>& pieces)
+{
+  for (const auto& entry : m_memoryTocEntries) {
+    if (entry.type == MemoryTypeTRAJ) {
+      startBatchRequest();
+      size_t remainingBytes = sizeof(poly4d) * pieces.size();
+      size_t numRequests = ceil(remainingBytes / 24);
+      std::cout << remainingBytes << "->" << numRequests << std::endl;
+      for (size_t i = 0; i < numRequests; ++i) {
+        crtpMemoryWriteRequest req(entry.id, index * sizeof(poly4d) + i*24);
+        size_t size = std::min<size_t>(remainingBytes, 24);
+        memcpy(req.data, reinterpret_cast<const uint8_t*>(pieces.data()) + i * 24, size);
+        remainingBytes -= size;
+        std::cout << size << "," << remainingBytes << std::endl;
+
+        addRequest(reinterpret_cast<const uint8_t*>(&req), 6 + size, 5);
+      }
+      handleRequests();
+      return;
+    }
+  }
+  throw std::runtime_error("Could not find MemoryTypeTRAJ!");
+}
+
+void Crazyflie::startTrajectory(
+  uint32_t index,
+  uint8_t n_pieces,
+  float timescale,
+  bool reversed,
+  bool relative,
+  uint8_t groupMask)
+{
+  crtpCommanderHighLevelStartTrajectoryRequest req(groupMask, relative, reversed, TRAJECTORY_LOCATION_MEM, TRAJECTORY_TYPE_POLY4D, timescale);
+  req.trajectoryIdentifier.mem.offset = index * sizeof(poly4d);
+  req.trajectoryIdentifier.mem.n_pieces = n_pieces;
+  sendPacketOrTimeout((uint8_t*)&req, sizeof(req));
+}

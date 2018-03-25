@@ -209,6 +209,126 @@ struct crtpSetpointRequest
 
 // Port 4 (Memory access)
 
+struct crtpMemoryGetNumberRequest
+{
+  crtpMemoryGetNumberRequest()
+    : header(0x04, 0)
+    , command(1)
+  {
+  }
+  const crtp header;
+  const uint8_t command;
+}  __attribute__((packed));
+
+struct crtpMemoryGetNumberResponse
+{
+    static bool match(const Crazyradio::Ack& response) {
+      return response.size == 3 &&
+             crtp(response.data[0]) == crtp(4, 0) &&
+             response.data[1] == 1;
+    }
+
+    crtpMemoryGetNumberRequest request;
+    uint8_t numberOfMemories;
+} __attribute__((packed));
+
+struct crtpMemoryGetInfoRequest
+{
+  crtpMemoryGetInfoRequest(
+    uint8_t memId)
+    : header(0x04, 0)
+    , command(2)
+    , memId(memId)
+  {
+  }
+  const crtp header;
+  const uint8_t command;
+  uint8_t memId;
+}  __attribute__((packed));
+
+enum crtpMemoryType : uint8_t
+{
+  EEPROM = 0x00,
+  OW     = 0x01,
+  LED12  = 0x10,
+  LOCO   = 0x11,
+};
+
+struct crtpMemoryGetInfoResponse
+{
+    static bool match(const Crazyradio::Ack& response) {
+      return response.size > 2 &&
+             crtp(response.data[0]) == crtp(4, 0) &&
+             response.data[1] == 2;
+    }
+
+    crtpMemoryGetInfoRequest request;
+    crtpMemoryType memType;
+    uint32_t memSize; // Bytes
+    uint64_t memAddr; // valid for OW and EEPROM
+} __attribute__((packed));
+
+struct crtpMemoryReadRequest
+{
+  crtpMemoryReadRequest(
+    uint8_t memId,
+    uint32_t memAddr,
+    uint8_t length)
+    : header(0x04, 1)
+    , memId(memId)
+    , memAddr(memAddr)
+    , length(length)
+  {
+  }
+  const crtp header;
+  uint8_t memId;
+  uint32_t memAddr;
+  uint8_t length;
+}  __attribute__((packed));
+
+struct crtpMemoryReadResponse
+{
+    static bool match(const Crazyradio::Ack& response) {
+      return response.size > 2 &&
+             crtp(response.data[0]) == crtp(4, 1);
+    }
+
+    crtp header;
+    uint8_t memId;
+    uint32_t memAddr;
+    uint8_t status;
+    uint8_t data[24];
+} __attribute__((packed));
+
+struct crtpMemoryWriteRequest
+{
+  crtpMemoryWriteRequest(
+    uint8_t memId,
+    uint32_t memAddr)
+    : header(0x04, 2)
+    , memId(memId)
+    , memAddr(memAddr)
+  {
+  }
+  const crtp header;
+  uint8_t memId;
+  uint32_t memAddr;
+  uint8_t data[24];
+}  __attribute__((packed));
+
+struct crtpMemoryWriteResponse
+{
+    static bool match(const Crazyradio::Ack& response) {
+      return response.size > 2 &&
+             crtp(response.data[0]) == crtp(4, 2);
+    }
+
+    crtp header;
+    uint8_t memId;
+    uint32_t memAddr;
+    uint8_t status;
+} __attribute__((packed));
+
 // Port 5 (Data logging)
 
 struct crtpLogGetInfoResponse;
@@ -565,6 +685,53 @@ struct crtpCommanderHighLevelGoToRequest
     float z; // m
     float yaw; // deg
     float duration; // sec
+} __attribute__((packed));
+
+enum TrajectoryLocation_e : uint8_t {
+  TRAJECTORY_LOCATION_MEM = 0, // for trajectories that are uploaded dynamically
+  // Future features might include trajectories on flash or uSD card
+};
+
+enum TrajectoryType_e : uint8_t {
+  TRAJECTORY_TYPE_POLY4D = 0, // struct poly4d, see pptraj.h
+  // Future types might include versions without yaw
+};
+
+struct crtpCommanderHighLevelStartTrajectoryRequest
+{
+  crtpCommanderHighLevelStartTrajectoryRequest(
+    uint8_t groupMask,
+    bool relative,
+    bool reversed,
+    TrajectoryLocation_e trajectoryLocation,
+    TrajectoryType_e trajectoryType,
+    float timescale)
+    : header(0x08, 0)
+    , command(5)
+    , groupMask(groupMask)
+    , relative(relative)
+    , reversed(reversed)
+    , trajectoryLocation(trajectoryLocation)
+    , trajectoryType(trajectoryType)
+    , timescale(timescale)
+    {
+    }
+
+    const crtp header;
+    const uint8_t command;
+    uint8_t groupMask; // mask for which CFs this should apply to
+    uint8_t relative;  // set to true, if trajectory should be shifted to current setpoint
+    uint8_t reversed;  // set to true, if trajectory should be executed in reverse
+    TrajectoryLocation_e trajectoryLocation;
+    TrajectoryType_e trajectoryType;
+    union
+    {
+      struct {
+        uint32_t offset;  // offset in uploaded memory
+        uint8_t n_pieces;
+      } __attribute__((packed)) mem; // if trajectoryLocation is TRAJECTORY_LOCATION_MEM
+    } trajectoryIdentifier;
+    float timescale; // time factor; 1 = original speed; >1: slower; <1: faster
 } __attribute__((packed));
 
 // Port 13 (Platform)
