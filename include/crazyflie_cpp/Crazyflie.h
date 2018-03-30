@@ -180,6 +180,18 @@ public:
     setParam(id, v);
   }
 
+  void startSetParamRequest();
+
+  template<class T>
+  void addSetParam(uint8_t id, const T& value) {
+    ParamValue v;
+    memcpy(&v, &value, sizeof(value));
+    addSetParam(id, v);
+  }
+
+  void setRequestedParams();
+
+
   template<class T>
   T getParam(uint8_t id) const {
     ParamValue v = getParam(id);
@@ -376,6 +388,9 @@ private:
     uint8_t id);
 
   void setParam(uint8_t id, const ParamValue& value);
+  void addSetParam(uint8_t id, const ParamValue& value);
+
+
   const ParamValue& getParam(uint8_t id) const {
     return m_paramValues.at(id);
   }

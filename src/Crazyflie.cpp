@@ -587,9 +587,13 @@ void Crazyflie::requestMemoryToc()
   }
 }
 
-void Crazyflie::setParam(uint8_t id, const ParamValue& value) {
-
+void Crazyflie::startSetParamRequest()
+{
   startBatchRequest();
+}
+
+void Crazyflie::addSetParam(uint8_t id, const ParamValue& value)
+{
   bool found = false;
   for (auto&& entry : m_paramTocEntries) {
     if (entry.id == id) {
@@ -646,9 +650,20 @@ void Crazyflie::setParam(uint8_t id, const ParamValue& value) {
     sstr << "Could not find parameter with id " << id;
     throw std::runtime_error(sstr.str());
   }
-  handleRequests();
 
   m_paramValues[id] = value;
+}
+
+void Crazyflie::setRequestedParams()
+{
+  handleRequests();
+}
+
+void Crazyflie::setParam(uint8_t id, const ParamValue& value)
+{
+  startBatchRequest();
+  addSetParam(id, value);
+  setRequestedParams();
 }
 
 bool Crazyflie::sendPacket(
