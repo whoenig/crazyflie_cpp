@@ -146,9 +146,9 @@ public:
     BootloaderTarget target,
     size_t size,
     std::vector<uint8_t>& data);
-  void requestLogToc();
+  void requestLogToc(bool forceNoCache=false);
 
-  void requestParamToc();
+  void requestParamToc(bool forceNoCache=false);
 
   void requestMemoryToc();
 

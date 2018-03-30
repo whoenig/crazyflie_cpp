@@ -9,6 +9,7 @@
 #include "CrazyflieUSB.h"
 
 #include <iostream>
+#include <fstream>
 #include <cstring>
 #include <stdexcept>
 #include <thread>
@@ -485,7 +486,7 @@ void Crazyflie::readFlash(
   }
 }
 
-void Crazyflie::requestLogToc()
+void Crazyflie::requestLogToc(bool forceNoCache)
 {
   // Find the number of log variables in TOC
   crtpLogGetInfoRequest infoRequest;
@@ -493,29 +494,70 @@ void Crazyflie::requestLogToc()
   addRequest(infoRequest, 1);
   handleRequests();
   size_t len = getRequestResult<crtpLogGetInfoResponse>(0)->log_len;
-  std::cout << "Log: " << len << std::endl;
+  uint32_t crc = getRequestResult<crtpLogGetInfoResponse>(0)->log_crc;
 
-  // Request detailed information
-  startBatchRequest();
-  for (size_t i = 0; i < len; ++i) {
-    crtpLogGetItemRequest itemRequest(i);
-    addRequest(itemRequest, 2);
-  }
-  handleRequests();
+  // check if it is in the cache
+  std::string fileName = "log" + std::to_string(crc) + ".csv";
+  std::ifstream infile(fileName);
 
-  // Update internal structure with obtained data
-  m_logTocEntries.resize(len);
-  for (size_t i = 0; i < len; ++i) {
-    auto response = getRequestResult<crtpLogGetItemResponse>(i);
-    LogTocEntry& entry = m_logTocEntries[i];
-    entry.id = i;
-    entry.type = (LogType)response->type;
-    entry.group = std::string(&response->text[0]);
-    entry.name = std::string(&response->text[entry.group.size() + 1]);
+  if (forceNoCache || !infile.good()) {
+    std::cout << "Log: " << len << std::endl;
+
+    // Request detailed information
+    startBatchRequest();
+    for (size_t i = 0; i < len; ++i) {
+      crtpLogGetItemRequest itemRequest(i);
+      addRequest(itemRequest, 2);
+    }
+    handleRequests();
+
+    // Update internal structure with obtained data
+    m_logTocEntries.resize(len);
+    for (size_t i = 0; i < len; ++i) {
+      auto response = getRequestResult<crtpLogGetItemResponse>(i);
+      LogTocEntry& entry = m_logTocEntries[i];
+      entry.id = i;
+      entry.type = (LogType)response->type;
+      entry.group = std::string(&response->text[0]);
+      entry.name = std::string(&response->text[entry.group.size() + 1]);
+    }
+
+    // Write a cache file
+    {
+      // Atomic file write: write in temporary file first to avoid race conditions
+      std::string fileNameTemp = fileName + ".tmp";
+      std::ofstream output(fileNameTemp);
+      output << "id,type,group,name" << std::endl;
+      for (const auto& entry : m_logTocEntries) {
+        output << std::to_string(entry.id) << ","
+               << std::to_string(entry.type) << ","
+               << entry.group << ","
+               << entry.name << std::endl;
+      }
+      // change the filename
+      rename(fileNameTemp.c_str(), fileName.c_str());
+    }
+  } else {
+    std::cout << "Found variables in cache." << std::endl;
+    m_logTocEntries.clear();
+    std::string line, cell;
+    std::getline(infile, line); // ignore header
+    while (std::getline(infile, line)) {
+      std::stringstream lineStream(line);
+      m_logTocEntries.resize(m_logTocEntries.size() + 1);
+      std::getline(lineStream, cell, ',');
+      m_logTocEntries.back().id = std::stoi(cell);
+      std::getline(lineStream, cell, ',');
+      m_logTocEntries.back().type = (LogType)std::stoi(cell);
+      std::getline(lineStream, cell, ',');
+      m_logTocEntries.back().group = cell;
+      std::getline(lineStream, cell, ',');
+      m_logTocEntries.back().name = cell;
+    }
   }
 }
 
-void Crazyflie::requestParamToc()
+void Crazyflie::requestParamToc(bool forceNoCache)
 {
   // Find the number of parameters in TOC
   crtpParamTocGetInfoRequest infoRequest;
@@ -523,35 +565,92 @@ void Crazyflie::requestParamToc()
   addRequest(infoRequest, 1);
   handleRequests();
   size_t len = getRequestResult<crtpParamTocGetInfoResponse>(0)->numParam;
+  uint32_t crc = getRequestResult<crtpParamTocGetInfoResponse>(0)->crc;
 
-  std::cout << "Params: " << len << std::endl;
+  // check if it is in the cache
+  std::string fileName = "params" + std::to_string(crc) + ".csv";
+  std::ifstream infile(fileName);
 
-  // Request detailed information and values
-  startBatchRequest();
-  for (size_t i = 0; i < len; ++i) {
-    crtpParamTocGetItemRequest itemRequest(i);
-    addRequest(itemRequest, 2);
-    crtpParamReadRequest readRequest(i);
-    addRequest(readRequest, 1);
-  }
-  handleRequests();
+  if (forceNoCache || !infile.good()) {
+    std::cout << "Params: " << len << std::endl;
 
-  // Update internal structure with obtained data
-  m_paramTocEntries.resize(len);
-  for (size_t i = 0; i < len; ++i) {
-    auto r = getRequestResult<crtpParamTocGetItemResponse>(i*2+0);
-    auto val = getRequestResult<crtpParamValueResponse>(i*2+1);
+    // Request detailed information and values
+    startBatchRequest();
+    for (size_t i = 0; i < len; ++i) {
+      crtpParamTocGetItemRequest itemRequest(i);
+      addRequest(itemRequest, 2);
+      crtpParamReadRequest readRequest(i);
+      addRequest(readRequest, 1);
+    }
+    handleRequests();
 
-    ParamTocEntry& entry = m_paramTocEntries[i];
-    entry.id = i;
-    entry.type = (ParamType)(r->length | r-> type << 2 | r->sign << 3);
-    entry.readonly = r->readonly;
-    entry.group = std::string(&r->text[0]);
-    entry.name = std::string(&r->text[entry.group.size() + 1]);
+    // Update internal structure with obtained data
+    m_paramTocEntries.resize(len);
+    for (size_t i = 0; i < len; ++i) {
+      auto r = getRequestResult<crtpParamTocGetItemResponse>(i*2+0);
+      auto val = getRequestResult<crtpParamValueResponse>(i*2+1);
 
-    ParamValue v;
-    std::memcpy(&v, &val->valueFloat, 4);
-    m_paramValues[i] = v;
+      ParamTocEntry& entry = m_paramTocEntries[i];
+      entry.id = i;
+      entry.type = (ParamType)(r->length | r-> type << 2 | r->sign << 3);
+      entry.readonly = r->readonly;
+      entry.group = std::string(&r->text[0]);
+      entry.name = std::string(&r->text[entry.group.size() + 1]);
+
+      ParamValue v;
+      std::memcpy(&v, &val->valueFloat, 4);
+      m_paramValues[i] = v;
+    }
+
+    // Write a cache file
+    {
+      // Atomic file write: write in temporary file first to avoid race conditions
+      std::string fileNameTemp = fileName + ".tmp";
+      std::ofstream output(fileNameTemp);
+      output << "id,type,readonly,group,name" << std::endl;
+      for (const auto& entry : m_paramTocEntries) {
+        output << std::to_string(entry.id) << ","
+               << std::to_string(entry.type) << ","
+               << std::to_string(entry.readonly) << ","
+               << entry.group << ","
+               << entry.name << std::endl;
+      }
+      // change the filename
+      rename(fileNameTemp.c_str(), fileName.c_str());
+    }
+  } else {
+    std::cout << "Found variables in cache." << std::endl;
+    m_paramTocEntries.clear();
+    std::string line, cell;
+    std::getline(infile, line); // ignore header
+    while (std::getline(infile, line)) {
+      std::stringstream lineStream(line);
+      m_paramTocEntries.resize(m_paramTocEntries.size() + 1);
+      std::getline(lineStream, cell, ',');
+      m_paramTocEntries.back().id = std::stoi(cell);
+      std::getline(lineStream, cell, ',');
+      m_paramTocEntries.back().type = (ParamType)std::stoi(cell);
+      std::getline(lineStream, cell, ',');
+      m_paramTocEntries.back().readonly = std::stoi(cell);
+      std::getline(lineStream, cell, ',');
+      m_paramTocEntries.back().group = cell;
+      std::getline(lineStream, cell, ',');
+      m_paramTocEntries.back().name = cell;
+    }
+
+    // Request values
+    startBatchRequest();
+    for (size_t i = 0; i < len; ++i) {
+      crtpParamReadRequest readRequest(i);
+      addRequest(readRequest, 1);
+    }
+    handleRequests();
+    for (size_t i = 0; i < len; ++i) {
+      auto val = getRequestResult<crtpParamValueResponse>(i);
+      ParamValue v;
+      std::memcpy(&v, &val->valueFloat, 4);
+      m_paramValues[i] = v;
+    }
   }
 }
 
