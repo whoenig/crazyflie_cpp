@@ -90,6 +90,11 @@ public:
         const uint8_t* data,
         uint32_t length);
 
+
+    virtual void send2PacketsNoAck(
+        const uint8_t* data,
+        uint32_t totalLength);
+
 private:
     uint8_t m_channel;
     uint64_t m_address;
