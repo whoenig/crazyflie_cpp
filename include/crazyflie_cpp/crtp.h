@@ -1,8 +1,14 @@
 #pragma once
 
 #include "Crazyradio.h"
+#include <cstdint>
 
-#define CRTP_MAX_DATA_SIZE 30
+static int const CRTP_MAX_DATA_SIZE = 30;
+static int const CRTP_MAXSIZE = 31;
+#define CHECKSIZE(s) static_assert(sizeof(s) <= CRTP_MAXSIZE, #s " packet is too large");
+
+static int const CRTP_MAXSIZE_RESPONSE = 32;
+#define CHECKSIZE_RESPONSE(s) static_assert(sizeof(s) <= CRTP_MAXSIZE_RESPONSE, #s " packet is too large");
 
 // Header
 struct crtp
@@ -52,6 +58,7 @@ struct crtpConsoleResponse
     crtp header;
     char text[31];
 };
+CHECKSIZE_RESPONSE(crtpConsoleResponse)
 
 // Port 2 (Parameters)
 
@@ -76,6 +83,7 @@ struct crtpParamTocGetItemRequest
   const uint8_t command;
   uint8_t id;
 } __attribute__((packed));
+CHECKSIZE(crtpParamTocGetItemRequest)
 
 struct crtpParamTocGetItemResponse
 {
@@ -94,6 +102,7 @@ struct crtpParamTocGetItemResponse
   uint8_t group:1;  // one of ParamGroup
   char text[28]; // group, name
 } __attribute__((packed));
+CHECKSIZE_RESPONSE(crtpParamTocGetItemResponse)
 
 struct crtpParamTocGetInfoResponse;
 struct crtpParamTocGetInfoRequest
@@ -113,6 +122,7 @@ struct crtpParamTocGetInfoRequest
   const crtp header;
   const uint8_t command;
 } __attribute__((packed));
+CHECKSIZE(crtpParamTocGetInfoRequest)
 
 struct crtpParamTocGetInfoResponse
 {
@@ -126,6 +136,7 @@ struct crtpParamTocGetInfoResponse
   uint8_t numParam;
   uint32_t crc;
 } __attribute__((packed));
+CHECKSIZE_RESPONSE(crtpParamTocGetInfoResponse)
 
 struct crtpParamValueResponse;
 struct crtpParamReadRequest
@@ -146,6 +157,7 @@ struct crtpParamReadRequest
   const crtp header;
   const uint8_t id;
 } __attribute__((packed));
+CHECKSIZE(crtpParamReadRequest)
 
 template <class T>
 struct crtpParamWriteRequest
@@ -163,6 +175,7 @@ struct crtpParamWriteRequest
     const uint8_t id;
     const T value;
 } __attribute__((packed));
+CHECKSIZE(crtpParamWriteRequest<double>) // largest kind of param
 
 struct crtpParamValueResponse
 {
@@ -183,6 +196,7 @@ struct crtpParamValueResponse
     float valueFloat;
   };
 } __attribute__((packed));
+CHECKSIZE_RESPONSE(crtpParamValueResponse)
 
 // Port 3 (Commander)
 
@@ -206,6 +220,7 @@ struct crtpSetpointRequest
   float yawrate;
   uint16_t thrust;
 }  __attribute__((packed));
+CHECKSIZE(crtpSetpointRequest)
 
 // Port 4 (Memory access)
 
@@ -219,6 +234,7 @@ struct crtpMemoryGetNumberRequest
   const crtp header;
   const uint8_t command;
 }  __attribute__((packed));
+CHECKSIZE(crtpMemoryGetNumberRequest)
 
 struct crtpMemoryGetNumberResponse
 {
@@ -231,6 +247,7 @@ struct crtpMemoryGetNumberResponse
     crtpMemoryGetNumberRequest request;
     uint8_t numberOfMemories;
 } __attribute__((packed));
+CHECKSIZE_RESPONSE(crtpMemoryGetNumberResponse)
 
 struct crtpMemoryGetInfoRequest
 {
@@ -245,6 +262,7 @@ struct crtpMemoryGetInfoRequest
   const uint8_t command;
   uint8_t memId;
 }  __attribute__((packed));
+CHECKSIZE(crtpMemoryGetInfoRequest)
 
 enum crtpMemoryType : uint8_t
 {
@@ -267,6 +285,7 @@ struct crtpMemoryGetInfoResponse
     uint32_t memSize; // Bytes
     uint64_t memAddr; // valid for OW and EEPROM
 } __attribute__((packed));
+CHECKSIZE_RESPONSE(crtpMemoryGetInfoResponse)
 
 struct crtpMemoryReadRequest
 {
@@ -285,6 +304,7 @@ struct crtpMemoryReadRequest
   uint32_t memAddr;
   uint8_t length;
 }  __attribute__((packed));
+CHECKSIZE(crtpMemoryReadRequest)
 
 struct crtpMemoryReadResponse
 {
@@ -299,6 +319,7 @@ struct crtpMemoryReadResponse
     uint8_t status;
     uint8_t data[24];
 } __attribute__((packed));
+CHECKSIZE_RESPONSE(crtpMemoryReadResponse)
 
 struct crtpMemoryWriteRequest
 {
@@ -315,6 +336,7 @@ struct crtpMemoryWriteRequest
   uint32_t memAddr;
   uint8_t data[24];
 }  __attribute__((packed));
+CHECKSIZE(crtpMemoryWriteRequest)
 
 struct crtpMemoryWriteResponse
 {
@@ -328,6 +350,7 @@ struct crtpMemoryWriteResponse
     uint32_t memAddr;
     uint8_t status;
 } __attribute__((packed));
+CHECKSIZE_RESPONSE(crtpMemoryWriteResponse)
 
 // Port 5 (Data logging)
 
@@ -349,6 +372,7 @@ struct crtpLogGetInfoRequest
   const crtp header;
   const uint8_t command;
 } __attribute__((packed));
+CHECKSIZE(crtpLogGetInfoRequest)
 
 struct crtpLogGetInfoResponse
 {
@@ -368,6 +392,7 @@ struct crtpLogGetInfoResponse
   // Maximum number of operation programmable in the copter. An operation is one log variable retrieval programming
   uint8_t log_max_ops;
 } __attribute__((packed));
+CHECKSIZE_RESPONSE(crtpLogGetInfoResponse)
 
 struct crtpLogGetItemResponse;
 struct crtpLogGetItemRequest
@@ -389,6 +414,7 @@ struct crtpLogGetItemRequest
   const uint8_t command;
   uint8_t id;
 } __attribute__((packed));
+CHECKSIZE(crtpLogGetItemRequest)
 
 struct crtpLogGetItemResponse
 {
@@ -402,6 +428,7 @@ struct crtpLogGetItemResponse
     uint8_t type;
     char text[28]; // group, name
 } __attribute__((packed));
+CHECKSIZE_RESPONSE(crtpLogGetItemResponse)
 
 struct logBlockItem {
   uint8_t logType;
@@ -419,8 +446,9 @@ struct crtpLogCreateBlockRequest
   const crtp header;
   const uint8_t command;
   uint8_t id;
-  logBlockItem items[16];
+  logBlockItem items[14];
 } __attribute__((packed));
+CHECKSIZE(crtpLogCreateBlockRequest)
 
 // struct logAppendBlockRequest
 // {
@@ -466,6 +494,7 @@ struct crtpLogStartRequest
     uint8_t id;
     uint8_t period; // in increments of 10ms
 } __attribute__((packed));
+CHECKSIZE(crtpLogStartRequest)
 
 struct crtpLogStopRequest
 {
@@ -481,6 +510,7 @@ struct crtpLogStopRequest
     const uint8_t command;
     uint8_t id;
 } __attribute__((packed));
+CHECKSIZE(crtpLogStopRequest)
 
 struct crtpLogResetRequest
 {
@@ -493,6 +523,7 @@ struct crtpLogResetRequest
     const crtp header;
     const uint8_t command;
 } __attribute__((packed));
+CHECKSIZE(crtpLogResetRequest)
 
 enum crtpLogControlResult {
   crtpLogControlResultOk            = 0,
@@ -516,6 +547,7 @@ struct crtpLogControlResponse
     uint8_t requestByte1;
     uint8_t result; // one of crtpLogControlResult
 } __attribute__((packed));
+CHECKSIZE_RESPONSE(crtpLogControlResponse)
 
 struct crtpLogDataResponse
 {
@@ -530,7 +562,7 @@ struct crtpLogDataResponse
     uint16_t timestampHi;
     uint8_t data[26];
 } __attribute__((packed));
-
+CHECKSIZE_RESPONSE(crtpLogDataResponse)
 
 // Port 0x06 (External Position Update)
 
@@ -551,6 +583,7 @@ struct crtpExternalPositionUpdate
   float y;
   float z;
 }  __attribute__((packed));
+CHECKSIZE(crtpExternalPositionUpdate)
 
 struct crtpStopRequest
 {
@@ -558,6 +591,7 @@ struct crtpStopRequest
   const crtp header;
   uint8_t type;
 } __attribute__((packed));
+CHECKSIZE(crtpStopRequest)
 
 struct crtpHoverSetpointRequest
 {
@@ -573,6 +607,7 @@ struct crtpHoverSetpointRequest
   float yawrate;
   float zDistance;
 } __attribute__((packed));
+CHECKSIZE(crtpHoverSetpointRequest)
 
 struct crtpPositionSetpointRequest
 {
@@ -588,6 +623,7 @@ struct crtpPositionSetpointRequest
   float z;
   float yaw;
 } __attribute__((packed));
+CHECKSIZE(crtpPositionSetpointRequest)
 
 // Port 0x07 (Generic Setpoint)
 
@@ -615,6 +651,7 @@ struct crtpFullStateSetpointRequest
   int16_t omegay;
   int16_t omegaz;
 } __attribute__((packed));
+CHECKSIZE(crtpFullStateSetpointRequest)
 
 // Port 0x08 (High-level Setpoints)
 
@@ -632,6 +669,7 @@ struct crtpCommanderHighLevelSetGroupMaskRequest
     const uint8_t command;
     uint8_t groupMask;
 } __attribute__((packed));
+CHECKSIZE(crtpCommanderHighLevelSetGroupMaskRequest)
 
 struct crtpCommanderHighLevelTakeoffRequest
 {
@@ -653,6 +691,7 @@ struct crtpCommanderHighLevelTakeoffRequest
     float height;             // m (absolute)
     float duration;           // s (time it should take until target height is reached)
 } __attribute__((packed));
+CHECKSIZE(crtpCommanderHighLevelTakeoffRequest)
 
 struct crtpCommanderHighLevelLandRequest
 {
@@ -674,6 +713,7 @@ struct crtpCommanderHighLevelLandRequest
     float height;             // m (absolute)
     float duration;           // s (time it should take until target height is reached)
 } __attribute__((packed));
+CHECKSIZE(crtpCommanderHighLevelLandRequest)
 
 struct crtpCommanderHighLevelStopRequest
 {
@@ -689,6 +729,7 @@ struct crtpCommanderHighLevelStopRequest
     const uint8_t command;
     uint8_t groupMask;        // mask for which CFs this should apply to
 } __attribute__((packed));
+CHECKSIZE(crtpCommanderHighLevelStopRequest)
 
 struct crtpCommanderHighLevelGoToRequest
 {
@@ -722,6 +763,7 @@ struct crtpCommanderHighLevelGoToRequest
     float yaw; // deg
     float duration; // sec
 } __attribute__((packed));
+CHECKSIZE(crtpCommanderHighLevelGoToRequest)
 
 enum TrajectoryLocation_e : uint8_t {
   TRAJECTORY_LOCATION_MEM = 0, // for trajectories that are uploaded dynamically
@@ -769,6 +811,7 @@ struct crtpCommanderHighLevelStartTrajectoryRequest
     } trajectoryIdentifier;
     float timescale; // time factor; 1 = original speed; >1: slower; <1: faster
 } __attribute__((packed));
+CHECKSIZE(crtpCommanderHighLevelStartTrajectoryRequest)
 
 // Port 13 (Platform)
 
@@ -783,3 +826,4 @@ struct crtpPlatformRSSIAck
     uint8_t reserved;
     uint8_t rssi;
 };
+CHECKSIZE_RESPONSE(crtpPlatformRSSIAck)
