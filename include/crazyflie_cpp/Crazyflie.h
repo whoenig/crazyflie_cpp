@@ -701,3 +701,67 @@ private:
   uint8_t m_id;
   std::vector<Crazyflie::LogType> m_types;
 };
+
+///
+
+class CrazyflieBroadcaster
+{
+public:
+  CrazyflieBroadcaster(
+    const std::string& link_uri);
+
+  // High-Level setpoints
+  void takeoff(float height, float duration, uint8_t groupMask = 0);
+
+  void land(float height, float duration, uint8_t groupMask = 0);
+
+  void stop(uint8_t groupMask = 0);
+
+  // This is always in relative coordinates
+  void goTo(float x, float y, float z, float yaw, float duration, uint8_t groupMask = 0);
+
+  // This is always in relative coordinates
+  // TODO: this does not support trajectories that are of a different length!
+  void startTrajectory(
+    uint32_t index,
+    uint8_t n_pieces,
+    float timescale = 1.0,
+    bool reversed = false,
+    uint8_t groupMask = 0);
+
+  // // Parameter support
+  // template<class T>
+  // void setParam(
+  //   uint8_t group,
+  //   uint8_t id,
+  //   Crazyflie::ParamType type,
+  //   const T& value)
+  // {
+  //   Crazyflie::ParamValue v;
+  //   memcpy(&v, &value, sizeof(value));
+  //   setParam(group, id, type, v);
+  // }
+
+protected:
+  void sendPacket(
+    const uint8_t* data,
+    uint32_t length);
+
+  void send2Packets(
+    const uint8_t* data,
+    uint32_t length);
+
+  // void setParam(
+  //   uint8_t group,
+  //   uint8_t id,
+  //   Crazyflie::ParamType type,
+  //   const Crazyflie::ParamValue& value);
+
+private:
+  Crazyradio* m_radio;
+  int m_devId;
+
+  uint8_t m_channel;
+  uint64_t m_address;
+  Crazyradio::Datarate m_datarate;
+};

@@ -1106,3 +1106,195 @@ void Crazyflie::startTrajectory(
   req.trajectoryIdentifier.mem.n_pieces = n_pieces;
   sendPacketOrTimeout((uint8_t*)&req, sizeof(req));
 }
+
+////////////////////////////////////////////////////////////////
+
+CrazyflieBroadcaster::CrazyflieBroadcaster(
+  const std::string& link_uri)
+  : m_radio(nullptr)
+  , m_devId(0)
+  , m_channel(0)
+  , m_address(0)
+  , m_datarate(Crazyradio::Datarate_250KPS)
+{
+  int datarate;
+  int channel;
+  char datarateType;
+  bool success = false;
+
+  success = std::sscanf(link_uri.c_str(), "radio://%d/%d/%d%c/%" SCNx64,
+     &m_devId, &channel, &datarate,
+     &datarateType, &m_address) == 5;
+  if (!success) {
+    success = std::sscanf(link_uri.c_str(), "radio://%d/%d/%d%c",
+       &m_devId, &channel, &datarate,
+       &datarateType) == 4;
+    m_address = 0xE7E7E7E7E7;
+  }
+
+  if (success)
+  {
+    m_channel = channel;
+    if (datarate == 250 && datarateType == 'K') {
+      m_datarate = Crazyradio::Datarate_250KPS;
+    }
+    else if (datarate == 1 && datarateType == 'M') {
+      m_datarate = Crazyradio::Datarate_1MPS;
+    }
+    else if (datarate == 2 && datarateType == 'M') {
+      m_datarate = Crazyradio::Datarate_2MPS;
+    }
+
+    if (m_devId >= MAX_RADIOS) {
+      throw std::runtime_error("This version does not support that many radios. Adjust MAX_RADIOS and recompile!");
+    }
+
+    {
+      std::unique_lock<std::mutex> mlock(g_radioMutex[m_devId]);
+      if (!g_crazyradios[m_devId]) {
+        g_crazyradios[m_devId] = new Crazyradio(m_devId);
+        // g_crazyradios[m_devId]->setAckEnable(false);
+        g_crazyradios[m_devId]->setAckEnable(true);
+        g_crazyradios[m_devId]->setArc(0);
+      }
+    }
+
+    m_radio = g_crazyradios[m_devId];
+  }
+  else {
+    throw std::runtime_error("Uri is not valid!");
+  }
+}
+
+void CrazyflieBroadcaster::sendPacket(
+  const uint8_t* data,
+  uint32_t length)
+{
+  std::unique_lock<std::mutex> mlock(g_radioMutex[m_devId]);
+  if (m_radio->getAddress() != m_address) {
+    m_radio->setAddress(m_address);
+  }
+  if (m_radio->getChannel() != m_channel) {
+    m_radio->setChannel(m_channel);
+  }
+  if (m_radio->getDatarate() != m_datarate) {
+    m_radio->setDatarate(m_datarate);
+  }
+  if (m_radio->getAckEnable()) {
+    m_radio->setAckEnable(false);
+  }
+  m_radio->sendPacketNoAck(data, length);
+}
+
+void CrazyflieBroadcaster::send2Packets(
+  const uint8_t* data,
+  uint32_t length)
+{
+  std::unique_lock<std::mutex> mlock(g_radioMutex[m_devId]);
+  if (m_radio->getAddress() != m_address) {
+    m_radio->setAddress(m_address);
+  }
+  if (m_radio->getChannel() != m_channel) {
+    m_radio->setChannel(m_channel);
+  }
+  if (m_radio->getDatarate() != m_datarate) {
+    m_radio->setDatarate(m_datarate);
+  }
+  if (m_radio->getAckEnable()) {
+    m_radio->setAckEnable(false);
+  }
+  m_radio->send2PacketsNoAck(data, length);
+}
+
+void CrazyflieBroadcaster::takeoff(float height, float duration, uint8_t groupMask)
+{
+  crtpCommanderHighLevelTakeoffRequest req(groupMask, height, duration);
+  sendPacket((uint8_t*)&req, sizeof(req));
+}
+
+void CrazyflieBroadcaster::land(float height, float duration, uint8_t groupMask)
+{
+  crtpCommanderHighLevelLandRequest req(groupMask, height, duration);
+  sendPacket((uint8_t*)&req, sizeof(req));
+}
+
+void CrazyflieBroadcaster::stop(uint8_t groupMask)
+{
+  crtpCommanderHighLevelStopRequest req(groupMask);
+  sendPacket((uint8_t*)&req, sizeof(req));
+}
+
+// This is always in relative coordinates
+void CrazyflieBroadcaster::goTo(float x, float y, float z, float yaw, float duration, uint8_t groupMask)
+{
+  crtpCommanderHighLevelGoToRequest req(groupMask, true, x, y, z, yaw, duration);
+  sendPacket((uint8_t*)&req, sizeof(req));
+}
+
+// This is always in relative coordinates
+// TODO: this does not support trajectories that are of a different length!
+void CrazyflieBroadcaster::startTrajectory(
+  uint32_t index,
+  uint8_t n_pieces,
+  float timescale,
+  bool reversed,
+  uint8_t groupMask)
+{
+  crtpCommanderHighLevelStartTrajectoryRequest req(groupMask, true, reversed, TRAJECTORY_LOCATION_MEM, TRAJECTORY_TYPE_POLY4D, timescale);
+  req.trajectoryIdentifier.mem.offset = index * sizeof(Crazyflie::poly4d);
+  req.trajectoryIdentifier.mem.n_pieces = n_pieces;
+  sendPacket((uint8_t*)&req, sizeof(req));
+}
+
+// void CrazyflieBroadcaster::setParam(
+//   uint8_t group,
+//   uint8_t id,
+//   Crazyflie::ParamType type,
+//   const Crazyflie::ParamValue& value) {
+
+//   switch (type) {
+//     case Crazyflie::ParamTypeUint8:
+//       {
+//         crtpParamWriteBroadcastRequest<uint8_t> request(group, id, value.valueUint8);
+//         sendPacket((const uint8_t*)&request, sizeof(request));
+//         break;
+//       }
+//     case Crazyflie::ParamTypeInt8:
+//       {
+//         crtpParamWriteBroadcastRequest<int8_t> request(group, id, value.valueInt8);
+//         sendPacket((const uint8_t*)&request, sizeof(request));
+//         break;
+//       }
+//     case Crazyflie::ParamTypeUint16:
+//       {
+//         crtpParamWriteBroadcastRequest<uint16_t> request(group, id, value.valueUint16);
+//         sendPacket((const uint8_t*)&request, sizeof(request));
+//         break;
+//       }
+//     case Crazyflie::ParamTypeInt16:
+//       {
+//         crtpParamWriteBroadcastRequest<int16_t> request(group, id, value.valueInt16);
+//         sendPacket((const uint8_t*)&request, sizeof(request));
+//         break;
+//       }
+//     case Crazyflie::ParamTypeUint32:
+//       {
+//         crtpParamWriteBroadcastRequest<uint32_t> request(group, id, value.valueUint32);
+//         sendPacket((const uint8_t*)&request, sizeof(request));
+//         break;
+//       }
+//     case Crazyflie::ParamTypeInt32:
+//       {
+//         crtpParamWriteBroadcastRequest<int32_t> request(group, id, value.valueInt32);
+//         sendPacket((const uint8_t*)&request, sizeof(request));
+//         break;
+//       }
+//     case Crazyflie::ParamTypeFloat:
+//       {
+//         crtpParamWriteBroadcastRequest<float> request(group, id, value.valueFloat);
+//         sendPacket((const uint8_t*)&request, sizeof(request));
+//         break;
+//       }
+//   }
+//   // TODO: technically we should update the internal copy of the value of each CF object
+// }
