@@ -489,6 +489,12 @@ void Crazyflie::readFlash(
   }
 }
 
+void Crazyflie::setChannel(uint8_t channel)
+{
+  const uint8_t setChannel[] = {0xFF, 0x03, 0x01, channel};
+  sendPacketOrTimeout(setChannel, sizeof(setChannel));
+}
+
 void Crazyflie::requestLogToc(bool forceNoCache)
 {
   // Find the number of log variables in TOC

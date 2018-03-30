@@ -159,6 +159,9 @@ public:
     BootloaderTarget target,
     size_t size,
     std::vector<uint8_t>& data);
+
+  void setChannel(uint8_t channel);
+
   void requestLogToc(bool forceNoCache=false);
 
   void requestParamToc(bool forceNoCache=false);
