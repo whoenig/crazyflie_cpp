@@ -505,7 +505,9 @@ private:
       m_callback(time_in_ms, t);
     }
     else {
-      throw std::runtime_error("Size doesn't match!");
+      std::stringstream sstr;
+      sstr << "Size doesn't match! Is: " << (size_t)size << " expected: " << sizeof(T);
+      throw std::runtime_error(sstr.str());
     }
   }
 
