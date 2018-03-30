@@ -87,3 +87,35 @@ crtpFullStateSetpointRequest::crtpFullStateSetpointRequest(
 	this->omegay = s * pitchRate;
 	this->omegaz = s * yawRate;
 }
+
+crtpStopRequest::crtpStopRequest()
+	: header(0X07, 0), type(0)
+{}
+
+// m/s for velocity, deg/s for yawrate, and m for zDistance
+crtpHoverSetpointRequest::crtpHoverSetpointRequest(
+	float vx,
+	float vy,
+	float yawrate,
+	float zDistance)
+	: header(0X07, 0), type(5)
+{
+	this->vx = vx;
+	this->vy = vy;
+	this->yawrate = yawrate;
+	this->zDistance = zDistance;
+}
+
+// m in position, degree in yaw
+crtpPositionSetpointRequest::crtpPositionSetpointRequest(
+	float x,
+	float y,
+	float z,
+	float yaw)
+	: header(0X07, 0), type(7)
+{
+	this->x = x;
+	this->y = y;
+	this->z = z;
+	this->yaw = yaw;
+}
