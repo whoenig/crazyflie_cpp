@@ -711,6 +711,9 @@ void Crazyflie::sendPacket(
     if (m_radio->getDatarate() != m_datarate) {
       m_radio->setDatarate(m_datarate);
     }
+    if (!m_radio->getAckEnable()) {
+      m_radio->setAckEnable(true);
+    }
     m_radio->sendPacket(data, length, ack);
   } else {
     std::unique_lock<std::mutex> mlock(g_crazyflieusbMutex[m_devId]);

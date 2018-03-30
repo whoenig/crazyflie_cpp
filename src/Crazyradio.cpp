@@ -26,6 +26,7 @@ Crazyradio::Crazyradio(
     , m_channel(0)
     , m_address(0)
     , m_datarate(Datarate_250KPS)
+    , m_ackEnable(true)
 {
     open(devid);
     setDatarate(Datarate_2MPS);
@@ -35,6 +36,7 @@ Crazyradio::Crazyradio(
     setPower(Power_0DBM);
     setArc(3);
     setArdBytes(32);
+    setAckEnable(true);
 }
 
 Crazyradio::~Crazyradio()
@@ -123,6 +125,7 @@ void Crazyradio::setArdBytes(uint8_t nbytes)
 void Crazyradio::setAckEnable(bool enable)
 {
     sendVendorSetup(ACK_ENABLE, enable, 0, NULL, 0);
+    m_ackEnable = enable;
 }
 
 void Crazyradio::setContCarrier(bool active)

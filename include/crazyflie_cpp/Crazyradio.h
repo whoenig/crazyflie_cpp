@@ -74,6 +74,10 @@ public:
     void setAckEnable(
         bool enable);
 
+    bool getAckEnable() const {
+        return m_ackEnable;
+    }
+
     void setContCarrier(
         bool active);
 
@@ -90,4 +94,5 @@ private:
     uint8_t m_channel;
     uint64_t m_address;
     Datarate m_datarate;
+    bool m_ackEnable;
 };
