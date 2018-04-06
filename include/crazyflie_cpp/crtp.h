@@ -585,6 +585,22 @@ struct crtpExternalPositionUpdate
 }  __attribute__((packed));
 CHECKSIZE(crtpExternalPositionUpdate)
 
+struct crtpExternalPositionPacked
+{
+  crtpExternalPositionPacked()
+    : header(0x06, 2)
+  {
+  }
+  const crtp header;
+  struct {
+    uint8_t id;
+    int16_t x; // mm
+    int16_t y; // mm
+    int16_t z; // mm
+  } __attribute__((packed)) positions[4];
+}  __attribute__((packed));
+CHECKSIZE(crtpExternalPositionPacked)
+
 struct crtpStopRequest
 {
   crtpStopRequest();

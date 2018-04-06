@@ -1246,6 +1246,37 @@ void CrazyflieBroadcaster::startTrajectory(
   sendPacket((uint8_t*)&req, sizeof(req));
 }
 
+void CrazyflieBroadcaster::sendExternalPositions(
+  const std::vector<externalPosition>& data)
+{
+  if (data.size() == 0) {
+    return;
+  }
+
+  std::vector<crtpExternalPositionPacked> requests(ceil(data.size() / 4.0));
+  for (size_t i = 0; i < data.size(); ++i) {
+    size_t j = i / 4;
+    requests[j].positions[i%4].id = data[i].id;
+    requests[j].positions[i%4].x = data[i].x * 1000;
+    requests[j].positions[i%4].y = data[i].y * 1000;
+    requests[j].positions[i%4].z = data[i].z * 1000;
+  }
+
+  size_t remainingRequests = requests.size();
+  size_t i = 0;
+  while (remainingRequests > 0) {
+    if (remainingRequests >= 2) {
+      send2Packets(reinterpret_cast<const uint8_t*>(&requests[i]), 2 * sizeof(crtpExternalPositionPacked));
+      remainingRequests -= 2;
+      i += 2;
+    } else {
+      sendPacket(reinterpret_cast<const uint8_t*>(&requests[i]), sizeof(crtpExternalPositionPacked));
+      remainingRequests -= 1;
+      i += 1;
+    }
+  }
+}
+
 // void CrazyflieBroadcaster::setParam(
 //   uint8_t group,
 //   uint8_t id,

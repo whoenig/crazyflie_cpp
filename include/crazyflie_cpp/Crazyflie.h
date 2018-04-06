@@ -729,6 +729,17 @@ public:
     bool reversed = false,
     uint8_t groupMask = 0);
 
+  struct externalPosition
+  {
+    uint8_t id;
+    float x;
+    float y;
+    float z;
+  };
+
+  void sendExternalPositions(
+    const std::vector<externalPosition>& data);
+
   // // Parameter support
   // template<class T>
   // void setParam(
