@@ -781,32 +781,20 @@ struct crtpCommanderHighLevelGoToRequest
 } __attribute__((packed));
 CHECKSIZE(crtpCommanderHighLevelGoToRequest)
 
-enum TrajectoryLocation_e : uint8_t {
-  TRAJECTORY_LOCATION_MEM = 0, // for trajectories that are uploaded dynamically
-  // Future features might include trajectories on flash or uSD card
-};
-
-enum TrajectoryType_e : uint8_t {
-  TRAJECTORY_TYPE_POLY4D = 0, // struct poly4d, see pptraj.h
-  // Future types might include versions without yaw
-};
-
 struct crtpCommanderHighLevelStartTrajectoryRequest
 {
   crtpCommanderHighLevelStartTrajectoryRequest(
     uint8_t groupMask,
     bool relative,
     bool reversed,
-    TrajectoryLocation_e trajectoryLocation,
-    TrajectoryType_e trajectoryType,
+    uint8_t trajectoryId,
     float timescale)
     : header(0x08, 0)
     , command(5)
     , groupMask(groupMask)
     , relative(relative)
     , reversed(reversed)
-    , trajectoryLocation(trajectoryLocation)
-    , trajectoryType(trajectoryType)
+    , trajectoryId(trajectoryId)
     , timescale(timescale)
     {
     }
@@ -816,18 +804,51 @@ struct crtpCommanderHighLevelStartTrajectoryRequest
     uint8_t groupMask; // mask for which CFs this should apply to
     uint8_t relative;  // set to true, if trajectory should be shifted to current setpoint
     uint8_t reversed;  // set to true, if trajectory should be executed in reverse
-    TrajectoryLocation_e trajectoryLocation;
-    TrajectoryType_e trajectoryType;
-    union
-    {
-      struct {
-        uint32_t offset;  // offset in uploaded memory
-        uint8_t n_pieces;
-      } __attribute__((packed)) mem; // if trajectoryLocation is TRAJECTORY_LOCATION_MEM
-    } trajectoryIdentifier;
+    uint8_t trajectoryId; // id of the trajectory (previously defined by COMMAND_DEFINE_TRAJECTORY)
     float timescale; // time factor; 1 = original speed; >1: slower; <1: faster
 } __attribute__((packed));
 CHECKSIZE(crtpCommanderHighLevelStartTrajectoryRequest)
+
+enum TrajectoryLocation_e {
+  TRAJECTORY_LOCATION_INVALID = 0,
+  TRAJECTORY_LOCATION_MEM     = 1, // for trajectories that are uploaded dynamically
+  // Future features might include trajectories on flash or uSD card
+};
+
+enum TrajectoryType_e {
+  TRAJECTORY_TYPE_POLY4D = 0, // struct poly4d, see pptraj.h
+  // Future types might include versions without yaw
+};
+
+struct trajectoryDescription
+{
+  uint8_t trajectoryLocation; // one of TrajectoryLocation_e
+  uint8_t trajectoryType;     // one of TrajectoryType_e
+  union
+  {
+    struct {
+      uint32_t offset;  // offset in uploaded memory
+      uint8_t n_pieces;
+    } __attribute__((packed)) mem; // if trajectoryLocation is TRAJECTORY_LOCATION_MEM
+  } trajectoryIdentifier;
+} __attribute__((packed));
+
+struct crtpCommanderHighLevelDefineTrajectoryRequest
+{
+  crtpCommanderHighLevelDefineTrajectoryRequest(
+    uint8_t trajectoryId)
+    : header(0x08, 0)
+    , command(6)
+    , trajectoryId(trajectoryId)
+    {
+    }
+
+    const crtp header;
+    const uint8_t command;
+    uint8_t trajectoryId;
+    struct trajectoryDescription description;
+} __attribute__((packed));
+CHECKSIZE(crtpCommanderHighLevelDefineTrajectoryRequest)
 
 // Port 13 (Platform)
 

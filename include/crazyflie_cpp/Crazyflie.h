@@ -285,13 +285,13 @@ public:
 
   void goTo(float x, float y, float z, float yaw, float duration, bool relative = false, uint8_t groupMask = 0);
 
-  void uploadTrajectoryPieces(
-    uint32_t index,
+  void uploadTrajectory(
+    uint8_t trajectoryId,
+    uint32_t pieceOffset,
     const std::vector<poly4d>& pieces);
 
   void startTrajectory(
-    uint32_t index,
-    uint8_t n_pieces,
+    uint8_t trajectoryId,
     float timescale = 1.0,
     bool reversed = false,
     bool relative = true,
@@ -721,10 +721,8 @@ public:
   void goTo(float x, float y, float z, float yaw, float duration, uint8_t groupMask = 0);
 
   // This is always in relative coordinates
-  // TODO: this does not support trajectories that are of a different length!
   void startTrajectory(
-    uint32_t index,
-    uint8_t n_pieces,
+    uint8_t trajectoryId,
     float timescale = 1.0,
     bool reversed = false,
     uint8_t groupMask = 0);

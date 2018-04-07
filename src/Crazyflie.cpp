@@ -1070,22 +1070,31 @@ void Crazyflie::goTo(float x, float y, float z, float yaw, float duration, bool 
   sendPacketOrTimeout((uint8_t*)&req, sizeof(req));
 }
 
-void Crazyflie::uploadTrajectoryPieces(
-  uint32_t index,
+void Crazyflie::uploadTrajectory(
+  uint8_t trajectoryId,
+  uint32_t pieceOffset,
   const std::vector<poly4d>& pieces)
 {
   for (const auto& entry : m_memoryTocEntries) {
     if (entry.type == MemoryTypeTRAJ) {
       startBatchRequest();
+      // upload pieces
       size_t remainingBytes = sizeof(poly4d) * pieces.size();
       size_t numRequests = ceil(remainingBytes / 24);
       for (size_t i = 0; i < numRequests; ++i) {
-        crtpMemoryWriteRequest req(entry.id, index * sizeof(poly4d) + i*24);
+        crtpMemoryWriteRequest req(entry.id, pieceOffset * sizeof(poly4d) + i*24);
         size_t size = std::min<size_t>(remainingBytes, 24);
         memcpy(req.data, reinterpret_cast<const uint8_t*>(pieces.data()) + i * 24, size);
         remainingBytes -= size;
         addRequest(reinterpret_cast<const uint8_t*>(&req), 6 + size, 5);
       }
+      // define trajectory
+      crtpCommanderHighLevelDefineTrajectoryRequest req(trajectoryId);
+      req.description.trajectoryLocation = TRAJECTORY_LOCATION_MEM;
+      req.description.trajectoryType = TRAJECTORY_TYPE_POLY4D;
+      req.description.trajectoryIdentifier.mem.offset = pieceOffset * sizeof(poly4d);
+      req.description.trajectoryIdentifier.mem.n_pieces = (uint8_t)pieces.size();
+      addRequest(req, 2);
       handleRequests();
       return;
     }
@@ -1094,16 +1103,13 @@ void Crazyflie::uploadTrajectoryPieces(
 }
 
 void Crazyflie::startTrajectory(
-  uint32_t index,
-  uint8_t n_pieces,
+  uint8_t trajectoryId,
   float timescale,
   bool reversed,
   bool relative,
   uint8_t groupMask)
 {
-  crtpCommanderHighLevelStartTrajectoryRequest req(groupMask, relative, reversed, TRAJECTORY_LOCATION_MEM, TRAJECTORY_TYPE_POLY4D, timescale);
-  req.trajectoryIdentifier.mem.offset = index * sizeof(poly4d);
-  req.trajectoryIdentifier.mem.n_pieces = n_pieces;
+  crtpCommanderHighLevelStartTrajectoryRequest req(groupMask, relative, reversed, trajectoryId, timescale);
   sendPacketOrTimeout((uint8_t*)&req, sizeof(req));
 }
 
@@ -1234,15 +1240,12 @@ void CrazyflieBroadcaster::goTo(float x, float y, float z, float yaw, float dura
 // This is always in relative coordinates
 // TODO: this does not support trajectories that are of a different length!
 void CrazyflieBroadcaster::startTrajectory(
-  uint32_t index,
-  uint8_t n_pieces,
+  uint8_t trajectoryId,
   float timescale,
   bool reversed,
   uint8_t groupMask)
 {
-  crtpCommanderHighLevelStartTrajectoryRequest req(groupMask, true, reversed, TRAJECTORY_LOCATION_MEM, TRAJECTORY_TYPE_POLY4D, timescale);
-  req.trajectoryIdentifier.mem.offset = index * sizeof(Crazyflie::poly4d);
-  req.trajectoryIdentifier.mem.n_pieces = n_pieces;
+  crtpCommanderHighLevelStartTrajectoryRequest req(groupMask, true, reversed, trajectoryId, timescale);
   sendPacket((uint8_t*)&req, sizeof(req));
 }
 
