@@ -1280,6 +1280,94 @@ void CrazyflieBroadcaster::sendExternalPositions(
   }
 }
 
+static float const POSITION_LIMIT = 8.0f; // meters
+static const uint32_t INT24_MAX = 8388607;
+static inline posFixed24_t position_float_to_fix24(float x)
+{
+  uint32_t val = (INT24_MAX / POSITION_LIMIT) * (x + POSITION_LIMIT);
+  posFixed24_t result;
+  result.low = (val >> 0) & 0xFF;
+  result.middle = (val >> 8) & 0xFF;
+  result.high = (val >> 16) & 0xFF;
+  return result;
+}
+
+// assumes input quaternion is normalized. will fail if not.
+static inline uint32_t quatcompress(float const q[4])
+{
+  // we send the values of the quaternion's smallest 3 elements.
+  unsigned i_largest = 0;
+  for (unsigned i = 1; i < 4; ++i) {
+    if (fabsf(q[i]) > fabsf(q[i_largest])) {
+      i_largest = i;
+    }
+  }
+
+  // since -q represents the same rotation as q,
+  // transform the quaternion so the largest element is positive.
+  // this avoids having to send its sign bit.
+  unsigned negate = q[i_largest] < 0;
+
+  // 1/sqrt(2) is the largest possible value 
+  // of the second-largest element in a unit quaternion.
+
+  // do compression using sign bit and 9-bit precision per element.
+  uint32_t comp = i_largest;
+  for (unsigned i = 0; i < 4; ++i) {
+    if (i != i_largest) {
+      unsigned negbit = (q[i] < 0) ^ negate;
+      unsigned mag = ((1 << 9) - 1) * (fabsf(q[i]) / (float)M_SQRT1_2) + 0.5f;
+      comp = (comp << 10) | (negbit << 9) | mag;
+    }
+  }
+
+  return comp;
+}
+
+void CrazyflieBroadcaster::sendExternalPoses(
+  const std::vector<externalPose>& data)
+{
+  if (data.size() == 0) {
+    return;
+  }
+
+#if 0
+  std::vector<crtpExternalPositionPacked> requests(ceil(data.size() / 4.0));
+  for (size_t i = 0; i < data.size(); ++i) {
+    size_t j = i / 4;
+    requests[j].positions[i%4].id = data[i].id;
+    requests[j].positions[i%4].x = data[i].x * 1000;
+    requests[j].positions[i%4].y = data[i].y * 1000;
+    requests[j].positions[i%4].z = data[i].z * 1000;
+  }
+# else
+  std::vector<crtpPosExtBringup> requests(ceil(data.size() / 2.0));
+  for (size_t i = 0; i < data.size(); ++i) {
+    size_t j = i / 2;
+    requests[j].data.pose[i%2].id = data[i].id;
+    requests[j].data.pose[i%2].x = position_float_to_fix24(data[i].x);
+    requests[j].data.pose[i%2].y = position_float_to_fix24(data[i].y);
+    requests[j].data.pose[i%2].z = position_float_to_fix24(data[i].z);
+    float q[4] = { data[i].qx, data[i].qy, data[i].qz, data[i].qw };
+    requests[j].data.pose[i%2].quat = quatcompress(q);
+  }
+#endif
+
+  size_t remainingRequests = requests.size();
+  size_t i = 0;
+  while (remainingRequests > 0) {
+    if (remainingRequests >= 2) {
+      send2Packets(reinterpret_cast<const uint8_t*>(&requests[i]), 2 * sizeof(crtpExternalPositionPacked));
+      remainingRequests -= 2;
+      i += 2;
+    } else {
+      sendPacket(reinterpret_cast<const uint8_t*>(&requests[i]), sizeof(crtpExternalPositionPacked));
+      remainingRequests -= 1;
+      i += 1;
+    }
+  }
+}
+
 // void CrazyflieBroadcaster::setParam(
 //   uint8_t group,
 //   uint8_t id,

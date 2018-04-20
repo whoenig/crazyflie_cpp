@@ -738,6 +738,22 @@ public:
   void sendExternalPositions(
     const std::vector<externalPosition>& data);
 
+  struct externalPose
+  {
+    uint8_t id;
+    float x;
+    float y;
+    float z;
+    float qx;
+    float qy;
+    float qz;
+    float qw;
+  };
+
+  // Crazyswarm experimental
+  void sendExternalPoses(
+    const std::vector<externalPose>& data);
+
   // // Parameter support
   // template<class T>
   // void setParam(
