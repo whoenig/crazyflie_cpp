@@ -969,6 +969,7 @@ void Crazyflie::addRequest(
 }
 
 void Crazyflie::handleRequests(
+  bool crtpMode,
   float baseTime,
   float timePerRequest)
 {
@@ -980,12 +981,12 @@ void Crazyflie::handleRequests(
   float timeout = baseTime + timePerRequest * m_batchRequests.size();
 
   while (true) {
-    if (!sendPing) {
+    if (!crtpMode || !sendPing) {
       for (const auto& request : m_batchRequests) {
         if (!request.finished) {
           // std::cout << "sendReq" << std::endl;
           sendPacket(request.request.data(), request.request.size(), ack);
-          handleBatchAck(ack);
+          handleBatchAck(ack, crtpMode);
 
           auto end = std::chrono::system_clock::now();
           std::chrono::duration<double> elapsedSeconds = end-start;
@@ -999,7 +1000,7 @@ void Crazyflie::handleRequests(
       for (size_t i = 0; i < 10; ++i) {
         uint8_t ping = 0xFF;
         sendPacket(&ping, sizeof(ping), ack);
-        handleBatchAck(ack);
+        handleBatchAck(ack, crtpMode);
         // if (ack.ack && crtpPlatformRSSIAck::match(ack)) {
         //   sendPing = false;
         // }
@@ -1020,18 +1021,30 @@ void Crazyflie::handleRequests(
 }
 
 void Crazyflie::handleBatchAck(
-  const Crazyradio::Ack& ack)
+  const Crazyradio::Ack& ack,
+  bool crtpMode)
 {
   if (ack.ack) {
     for (auto& request : m_batchRequests) {
-      if (crtp(ack.data[0]) == crtp(request.request[0])
-          && memcmp(&ack.data[1], &request.request[1], request.numBytesToMatch) == 0
-          && !request.finished) {
-        request.ack = ack;
-        request.finished = true;
-        ++m_numRequestsFinished;
-        // std::cout << "gotack" <<std::endl;
-        return;
+      if (crtpMode) {
+        if ((crtp(ack.data[0]) == crtp(request.request[0]) || ack.data[0] == request.request[0])
+            && memcmp(&ack.data[1], &request.request[1], request.numBytesToMatch) == 0
+            && !request.finished) {
+          request.ack = ack;
+          request.finished = true;
+          ++m_numRequestsFinished;
+          // std::cout << "gotack" <<std::endl;
+          return;
+        }
+      } else {
+        if (!request.finished
+            && memcmp(&ack.data[0], &request.request[0], request.numBytesToMatch) == 0) {
+          request.ack = ack;
+          request.finished = true;
+          ++m_numRequestsFinished;
+          // std::cout << m_numRequestsFinished / (float)m_batchRequests.size() * 100.0 << " %" << std::endl;
+          return;
+        }
       }
     }
     // ack is (also) handled in sendPacket
