@@ -343,8 +343,8 @@ private:
   }
 
   void handleRequests(
-    float baseTime = 0.5,
-    float timePerRequest = 0.05);
+    float baseTime = 0.5*10,
+    float timePerRequest = 0.05*10);
 
   void handleBatchAck(
     const Crazyradio::Ack& result);
