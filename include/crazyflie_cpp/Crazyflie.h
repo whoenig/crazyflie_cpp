@@ -347,6 +347,7 @@ private:
     float baseTime = 2.0,
     float timePerRequest = 0.2);
 
+
   void handleBatchAck(
     const Crazyradio::Ack& result,
     bool crtpMode);
