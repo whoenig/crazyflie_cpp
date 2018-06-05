@@ -890,6 +890,18 @@ void Crazyflie::handleAck(
   else if (crtpParamValueResponse::match(result)) {
     // handled in batch system
   }
+  else if (crtpMemoryGetNumberResponse::match(result)) {
+    // handled in batch system
+  }
+  else if (crtpMemoryReadResponse::match(result)) {
+    // handled in batch system
+  }
+  else if (crtpMemoryWriteResponse::match(result)) {
+    // handled in batch system
+  }
+  else if (crtp(result.data[0]).port == 8) {
+    // handled in batch system
+  }
   else if (crtpPlatformRSSIAck::match(result)) {
     crtpPlatformRSSIAck* r = (crtpPlatformRSSIAck*)result.data;
     if (m_emptyAckCallback) {
