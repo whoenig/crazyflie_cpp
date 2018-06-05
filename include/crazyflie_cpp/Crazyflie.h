@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <sstream>
+#include <functional>
 
 #include "Crazyradio.h"
 #include "crtp.h"
