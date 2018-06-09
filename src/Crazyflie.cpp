@@ -110,6 +110,14 @@ Crazyflie::Crazyflie(
   if (!success) {
     throw std::runtime_error("Uri is not valid!");
   }
+
+  // enable safelink
+  const uint8_t enable_safelink[] = {0xFF, 0x05, 0x01};
+  sendPacketOrTimeout(enable_safelink, sizeof(enable_safelink));
+
+  m_curr_up = 0;
+  m_curr_down = 0;
+
 }
 
 void Crazyflie::logReset()
@@ -822,7 +830,23 @@ void Crazyflie::sendPacket(
     if (!m_radio->getAckEnable()) {
       m_radio->setAckEnable(true);
     }
-    m_radio->sendPacket(data, length, ack);
+    // consider safelink here:
+    //    Adds 1bit counter to CRTP header to guarantee that no ack (downlink)
+    //    payload are lost and no uplink packet are duplicated.
+    //    The caller should resend packet if not acked (ie. same as with a
+    //    direct call to crazyradio.send_packet)
+
+    std::vector<uint8_t> dataCopy(data, data + length);
+    dataCopy[0] &= 0xF3;
+    dataCopy[0] |= m_curr_up << 3 | m_curr_down << 2;
+    m_radio->sendPacket(dataCopy.data(), length, ack);
+    if (ack.ack && ack.size > 0 && (ack.data[0] & 0x04) == (m_curr_down << 2)) {
+      m_curr_down = 1 - m_curr_down;
+    }
+    if (ack.ack) {
+      m_curr_up = 1 - m_curr_up;
+    }
+
   } else {
     std::unique_lock<std::mutex> mlock(g_crazyflieusbMutex[m_devId]);
     m_transport->sendPacket(data, length, ack);
