@@ -198,6 +198,144 @@ struct crtpParamValueResponse
 } __attribute__((packed));
 CHECKSIZE_RESPONSE(crtpParamValueResponse)
 
+// V2
+struct crtpParamTocGetItemV2Response;
+struct crtpParamTocGetItemV2Request
+{
+  crtpParamTocGetItemV2Request(
+    uint16_t id)
+    : header(2, 0)
+    , command(2)
+    , id(id)
+  {
+  }
+
+  bool operator==(const crtpParamTocGetItemV2Request& other) const {
+    return header == other.header && command == other.command && id == other.id;
+  }
+
+  typedef crtpParamTocGetItemResponse Response;
+
+  const crtp header;
+  const uint8_t command;
+  uint16_t id;
+} __attribute__((packed));
+CHECKSIZE(crtpParamTocGetItemV2Request)
+
+struct crtpParamTocGetItemV2Response
+{
+  static bool match(const Crazyradio::Ack& response) {
+    return response.size > 5 &&
+           crtp(response.data[0]) == crtp(2, 0) &&
+           response.data[1] == 2;
+  }
+
+  crtpParamTocGetItemV2Request request;
+  uint8_t length:2; // one of ParamLength
+  uint8_t type:1;   // one of ParamType
+  uint8_t sign:1;   // one of ParamSign
+  uint8_t res0:2;   // reserved
+  uint8_t readonly:1;
+  uint8_t group:1;  // one of ParamGroup
+  char text[27]; // group, name
+} __attribute__((packed));
+CHECKSIZE_RESPONSE(crtpParamTocGetItemV2Response)
+
+struct crtpParamTocGetInfoV2Response;
+struct crtpParamTocGetInfoV2Request
+{
+  crtpParamTocGetInfoV2Request()
+    : header(2, 0)
+    , command(3)
+  {
+  }
+
+  bool operator==(const crtpParamTocGetInfoV2Request& other) const {
+    return header == other.header && command == other.command;
+  }
+
+  typedef crtpParamTocGetInfoV2Response Response;
+
+  const crtp header;
+  const uint8_t command;
+} __attribute__((packed));
+CHECKSIZE(crtpParamTocGetInfoV2Request)
+
+struct crtpParamTocGetInfoV2Response
+{
+  static bool match(const Crazyradio::Ack& response) {
+    return response.size == 8 &&
+           crtp(response.data[0]) == crtp(2, 0) &&
+           response.data[1] == 3;
+  }
+
+  crtpParamTocGetInfoV2Request request;
+  uint16_t numParam;
+  uint32_t crc;
+} __attribute__((packed));
+CHECKSIZE_RESPONSE(crtpParamTocGetInfoV2Response)
+
+struct crtpParamValueV2Response;
+struct crtpParamReadV2Request
+{
+  crtpParamReadV2Request(
+    uint16_t id)
+    : header(2, 1)
+    , id(id)
+  {
+  }
+
+  bool operator==(const crtpParamReadV2Request& other) const {
+    return header == other.header && id == other.id;
+  }
+
+  typedef crtpParamValueV2Response Response;
+
+  const crtp header;
+  const uint16_t id;
+} __attribute__((packed));
+CHECKSIZE(crtpParamReadV2Request)
+
+template <class T>
+struct crtpParamWriteV2Request
+{
+  crtpParamWriteV2Request(
+    uint16_t id,
+    const T& value)
+    : header(2, 2)
+    , id(id)
+    , value(value)
+    {
+    }
+
+    const crtp header;
+    const uint16_t id;
+    const T value;
+} __attribute__((packed));
+CHECKSIZE(crtpParamWriteV2Request<float>) // largest kind of param
+
+struct crtpParamValueV2Response
+{
+  static bool match(const Crazyradio::Ack& response) {
+    return response.size > 2 &&
+           (crtp(response.data[0]) == crtp(2, 1) ||
+            crtp(response.data[0]) == crtp(2, 2));
+  }
+
+  crtpParamReadV2Request request;
+  uint8_t status; // 0 = success
+  union {
+    uint8_t valueUint8;
+    int8_t valueInt8;
+    uint16_t valueUint16;
+    int16_t valueInt16;
+    uint32_t valueUint32;
+    int32_t valueInt32;
+    float valueFloat;
+  };
+} __attribute__((packed));
+CHECKSIZE_RESPONSE(crtpParamValueV2Response)
+
 // Port 3 (Commander)
 
 struct crtpSetpointRequest
@@ -563,6 +701,104 @@ struct crtpLogDataResponse
     uint8_t data[26];
 } __attribute__((packed));
 CHECKSIZE_RESPONSE(crtpLogDataResponse)
+
+// V2
+struct crtpLogGetInfoV2Response;
+struct crtpLogGetInfoV2Request
+{
+  crtpLogGetInfoV2Request()
+    : header(5, 0)
+    , command(3)
+    {
+    }
+
+  bool operator==(const crtpLogGetInfoV2Request& other) const {
+    return header == other.header && command == other.command;
+  }
+
+  typedef crtpLogGetInfoV2Response Response;
+
+  const crtp header;
+  const uint8_t command;
+} __attribute__((packed));
+CHECKSIZE(crtpLogGetInfoV2Request)
+
+struct crtpLogGetInfoV2Response
+{
+  static bool match(const Crazyradio::Ack& response) {
+    return response.size == 10 &&
+           crtp(response.data[0]) == crtp(5, 0) &&
+           response.data[1] == 3;
+  }
+
+  crtpLogGetInfoRequest request;
+  // Number of log items contained in the log table of content
+  uint16_t log_len;
+  // CRC values of the log TOC memory content. This is a fingerprint of the copter build that can be used to cache the TOC
+  uint32_t log_crc;
+  // Maximum number of log packets that can be programmed in the copter
+  uint8_t log_max_packet;
+  // Maximum number of operation programmable in the copter. An operation is one log variable retrieval programming
+  uint8_t log_max_ops;
+} __attribute__((packed));
+CHECKSIZE_RESPONSE(crtpLogGetInfoV2Response)
+
+struct crtpLogGetItemV2Response;
+struct crtpLogGetItemV2Request
+{
+  crtpLogGetItemV2Request(uint16_t id)
+    : header(5, 0)
+    , command(2)
+    , id(id)
+  {
+  }
+
+  bool operator==(const crtpLogGetItemV2Request& other) const {
+    return header == other.header && command == other.command && id == other.id;
+  }
+
+  typedef crtpLogGetItemV2Response Response;
+
+  const crtp header;
+  const uint8_t command;
+  uint16_t id;
+} __attribute__((packed));
+CHECKSIZE(crtpLogGetItemV2Request)
+
+struct crtpLogGetItemV2Response
+{
+    static bool match(const Crazyradio::Ack& response) {
+      return response.size > 6 &&
+             crtp(response.data[0]) == crtp(5, 0) &&
+             response.data[1] == 2;
+    }
+
+    crtpLogGetItemV2Request request;
+    uint8_t type;
+    char text[27]; // group, name
+} __attribute__((packed));
+CHECKSIZE_RESPONSE(crtpLogGetItemV2Response)
+
+struct logBlockItemV2 {
+  uint8_t logType;
+  uint16_t id;
+} __attribute__((packed));
+
+struct crtpLogCreateBlockV2Request
+{
+  crtpLogCreateBlockV2Request()
+  : header(5, 1)
+  , command(6)
+  {
+  }
+
+  const crtp header;
+  const uint8_t command;
+  uint8_t id;
+  logBlockItemV2 items[9];
+} __attribute__((packed));
+CHECKSIZE(crtpLogCreateBlockV2Request)
+
 
 // Port 0x06 (External Position Update)
 

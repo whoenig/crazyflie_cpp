@@ -43,6 +43,7 @@ Crazyflie::Crazyflie(
   , m_emptyAckCallback(nullptr)
   , m_linkQualityCallback(nullptr)
   , m_consoleCallback(nullptr)
+  , m_log_param_use_V2(false)
   , m_logger(logger)
 {
   int datarate;
@@ -505,13 +506,29 @@ void Crazyflie::setChannel(uint8_t channel)
 
 void Crazyflie::requestLogToc(bool forceNoCache)
 {
-  // Find the number of log variables in TOC
-  crtpLogGetInfoRequest infoRequest;
+  m_log_param_use_V2 = true;
+  uint16_t len;
+  uint32_t crc;
+
+  crtpLogGetInfoV2Request infoRequest;
   startBatchRequest();
   addRequest(infoRequest, 1);
-  handleRequests();
-  size_t len = getRequestResult<crtpLogGetInfoResponse>(0)->log_len;
-  uint32_t crc = getRequestResult<crtpLogGetInfoResponse>(0)->log_crc;
+  try {
+    handleRequests();
+    len = getRequestResult<crtpLogGetInfoV2Response>(0)->log_len;
+    crc = getRequestResult<crtpLogGetInfoV2Response>(0)->log_crc;
+  } catch (std::runtime_error& e) {
+    // std::cout << "Fall back to V1 param API" << std::endl;
+    m_log_param_use_V2 = false;
+
+    crtpLogGetInfoRequest infoRequest;
+    startBatchRequest();
+    addRequest(infoRequest, 1);
+    handleRequests();
+    len = getRequestResult<crtpLogGetInfoResponse>(0)->log_len;
+    crc = getRequestResult<crtpLogGetInfoResponse>(0)->log_crc;
+    // std::cout << len << std::endl;
+  }
 
   // check if it is in the cache
   std::string fileName = "log" + std::to_string(crc) + ".csv";
@@ -522,21 +539,39 @@ void Crazyflie::requestLogToc(bool forceNoCache)
 
     // Request detailed information
     startBatchRequest();
-    for (size_t i = 0; i < len; ++i) {
-      crtpLogGetItemRequest itemRequest(i);
-      addRequest(itemRequest, 2);
+    if (m_log_param_use_V2) {
+      for (size_t i = 0; i < len; ++i) {
+        crtpLogGetItemV2Request itemRequest(i);
+        addRequest(itemRequest, 2);
+      }
+    } else {
+      for (size_t i = 0; i < len; ++i) {
+        crtpLogGetItemRequest itemRequest(i);
+        addRequest(itemRequest, 2);
+      }
     }
     handleRequests();
 
     // Update internal structure with obtained data
     m_logTocEntries.resize(len);
-    for (size_t i = 0; i < len; ++i) {
-      auto response = getRequestResult<crtpLogGetItemResponse>(i);
-      LogTocEntry& entry = m_logTocEntries[i];
-      entry.id = i;
-      entry.type = (LogType)response->type;
-      entry.group = std::string(&response->text[0]);
-      entry.name = std::string(&response->text[entry.group.size() + 1]);
+    if (m_log_param_use_V2) {
+      for (size_t i = 0; i < len; ++i) {
+        auto response = getRequestResult<crtpLogGetItemV2Response>(i);
+        LogTocEntry& entry = m_logTocEntries[i];
+        entry.id = i;
+        entry.type = (LogType)response->type;
+        entry.group = std::string(&response->text[0]);
+        entry.name = std::string(&response->text[entry.group.size() + 1]);
+      }
+    } else {
+      for (size_t i = 0; i < len; ++i) {
+        auto response = getRequestResult<crtpLogGetItemResponse>(i);
+        LogTocEntry& entry = m_logTocEntries[i];
+        entry.id = i;
+        entry.type = (LogType)response->type;
+        entry.group = std::string(&response->text[0]);
+        entry.name = std::string(&response->text[entry.group.size() + 1]);
+      }
     }
 
     // Write a cache file
@@ -576,47 +611,90 @@ void Crazyflie::requestLogToc(bool forceNoCache)
 
 void Crazyflie::requestParamToc(bool forceNoCache)
 {
+  bool hasV2_support = true;
+  uint16_t numParam;
+  uint32_t crc;
   // Find the number of parameters in TOC
-  crtpParamTocGetInfoRequest infoRequest;
+  crtpParamTocGetInfoV2Request infoRequest;
   startBatchRequest();
+  // std::cout << "infoReq" << std::endl;
   addRequest(infoRequest, 1);
-  handleRequests();
-  size_t len = getRequestResult<crtpParamTocGetInfoResponse>(0)->numParam;
-  uint32_t crc = getRequestResult<crtpParamTocGetInfoResponse>(0)->crc;
+  try {
+    handleRequests();
+    numParam = getRequestResult<crtpParamTocGetInfoV2Response>(0)->numParam;
+    crc = getRequestResult<crtpParamTocGetInfoV2Response>(0)->crc;
+  } catch (std::runtime_error& e) {
+    // std::cout << "Fall back to V1 param API" << std::endl;
+    hasV2_support = false;
+
+    crtpParamTocGetInfoRequest infoRequest;
+    startBatchRequest();
+    addRequest(infoRequest, 1);
+    handleRequests();
+    numParam = getRequestResult<crtpParamTocGetInfoResponse>(0)->numParam;
+    crc = getRequestResult<crtpParamTocGetInfoResponse>(0)->crc;
+  }
 
   // check if it is in the cache
   std::string fileName = "params" + std::to_string(crc) + ".csv";
   std::ifstream infile(fileName);
 
   if (forceNoCache || !infile.good()) {
-    m_logger.info("Params: " + std::to_string(len));
+    m_logger.info("Params: " + std::to_string(numParam));
 
     // Request detailed information and values
     startBatchRequest();
-    for (size_t i = 0; i < len; ++i) {
-      crtpParamTocGetItemRequest itemRequest(i);
-      addRequest(itemRequest, 2);
-      crtpParamReadRequest readRequest(i);
-      addRequest(readRequest, 1);
+    if (!hasV2_support) {
+      for (uint16_t i = 0; i < numParam; ++i) {
+        crtpParamTocGetItemRequest itemRequest(i);
+        addRequest(itemRequest, 2);
+        crtpParamReadRequest readRequest(i);
+        addRequest(readRequest, 1);
+      }
+    } else {
+      for (uint16_t i = 0; i < numParam; ++i) {
+        crtpParamTocGetItemV2Request itemRequest(i);
+        addRequest(itemRequest, 2);
+        crtpParamReadV2Request readRequest(i);
+        addRequest(readRequest, 1);
+      }
     }
     handleRequests();
-
     // Update internal structure with obtained data
-    m_paramTocEntries.resize(len);
-    for (size_t i = 0; i < len; ++i) {
-      auto r = getRequestResult<crtpParamTocGetItemResponse>(i*2+0);
-      auto val = getRequestResult<crtpParamValueResponse>(i*2+1);
+    m_paramTocEntries.resize(numParam);
 
-      ParamTocEntry& entry = m_paramTocEntries[i];
-      entry.id = i;
-      entry.type = (ParamType)(r->length | r-> type << 2 | r->sign << 3);
-      entry.readonly = r->readonly;
-      entry.group = std::string(&r->text[0]);
-      entry.name = std::string(&r->text[entry.group.size() + 1]);
+    if (!hasV2_support) {
+      for (uint16_t i = 0; i < numParam; ++i) {
+        auto r = getRequestResult<crtpParamTocGetItemResponse>(i*2+0);
+        auto val = getRequestResult<crtpParamValueResponse>(i*2+1);
 
-      ParamValue v;
-      std::memcpy(&v, &val->valueFloat, 4);
-      m_paramValues[i] = v;
+        ParamTocEntry& entry = m_paramTocEntries[i];
+        entry.id = i;
+        entry.type = (ParamType)(r->length | r-> type << 2 | r->sign << 3);
+        entry.readonly = r->readonly;
+        entry.group = std::string(&r->text[0]);
+        entry.name = std::string(&r->text[entry.group.size() + 1]);
+
+        ParamValue v;
+        std::memcpy(&v, &val->valueFloat, 4);
+        m_paramValues[i] = v;
+      }
+    } else {
+      for (uint16_t i = 0; i < numParam; ++i) {
+        auto r = getRequestResult<crtpParamTocGetItemV2Response>(i*2+0);
+        auto val = getRequestResult<crtpParamValueV2Response>(i*2+1);
+
+        ParamTocEntry& entry = m_paramTocEntries[i];
+        entry.id = i;
+        entry.type = (ParamType)(r->length | r-> type << 2 | r->sign << 3);
+        entry.readonly = r->readonly;
+        entry.group = std::string(&r->text[0]);
+        entry.name = std::string(&r->text[entry.group.size() + 1]);
+
+        ParamValue v;
+        std::memcpy(&v, &val->valueFloat, 4);
+        m_paramValues[i] = v;
+      }
     }
 
     // Write a cache file
@@ -656,17 +734,32 @@ void Crazyflie::requestParamToc(bool forceNoCache)
     }
 
     // Request values
-    startBatchRequest();
-    for (size_t i = 0; i < len; ++i) {
-      crtpParamReadRequest readRequest(i);
-      addRequest(readRequest, 1);
-    }
-    handleRequests();
-    for (size_t i = 0; i < len; ++i) {
-      auto val = getRequestResult<crtpParamValueResponse>(i);
-      ParamValue v;
-      std::memcpy(&v, &val->valueFloat, 4);
-      m_paramValues[i] = v;
+    if (!hasV2_support) {
+      startBatchRequest();
+      for (size_t i = 0; i < numParam; ++i) {
+        crtpParamReadRequest readRequest(i);
+        addRequest(readRequest, 1);
+      }
+      handleRequests();
+      for (size_t i = 0; i < numParam; ++i) {
+        auto val = getRequestResult<crtpParamValueResponse>(i);
+        ParamValue v;
+        std::memcpy(&v, &val->valueFloat, 4);
+        m_paramValues[i] = v;
+      }
+    } else {
+      startBatchRequest();
+      for (size_t i = 0; i < numParam; ++i) {
+        crtpParamReadV2Request readRequest(i);
+        addRequest(readRequest, 1);
+      }
+      handleRequests();
+      for (size_t i = 0; i < numParam; ++i) {
+        auto val = getRequestResult<crtpParamValueV2Response>(i);
+        ParamValue v;
+        std::memcpy(&v, &val->valueFloat, 4);
+        m_paramValues[i] = v;
+      }
     }
   }
 }
@@ -903,6 +996,12 @@ void Crazyflie::handleAck(
     // handled in batch system
   }
   else if (crtpParamTocGetItemResponse::match(result)) {
+    // handled in batch system
+  }
+  else if (crtpParamTocGetInfoV2Response::match(result)) {
+    // handled in batch system
+  }
+  else if (crtpParamTocGetItemV2Response::match(result)) {
     // handled in batch system
   }
   else if (crtpMemoryGetNumberResponse::match(result)) {
