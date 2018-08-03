@@ -114,7 +114,7 @@ Crazyflie::Crazyflie(
 
   // enable safelink
   const uint8_t enable_safelink[] = {0xFF, 0x05, 0x01};
-  sendPacketOrTimeout(enable_safelink, sizeof(enable_safelink));
+  sendPacketOrTimeout(enable_safelink, sizeof(enable_safelink), false);
 
   m_curr_up = 0;
   m_curr_down = 0;
@@ -301,7 +301,7 @@ void Crazyflie::writeFlash(
   bootloaderGetInfoRequest req(target);
   startBatchRequest();
   addRequest(req, 3);
-  handleRequests(/*crtpMode=*/false);
+  handleRequests(/*crtpMode=*/false, /*useSafeLink*/ false);
   const bootloaderGetInfoResponse* response = getRequestResult<bootloaderGetInfoResponse>(0);
   uint16_t pageSize = response->pageSize;
   uint16_t flashStart = response->flashStart;
@@ -338,7 +338,7 @@ void Crazyflie::writeFlash(
 
       auto start = std::chrono::system_clock::now();
       // while (true) {
-        sendPacketOrTimeout((uint8_t*)&req, 7 + requestedSize);
+        sendPacketOrTimeout((uint8_t*)&req, 7 + requestedSize, false);
       //   startBatchRequest();
       //   bootloaderReadBufferRequest req2(target, usedBuffers, address);
       //   addRequest(req2, 7);
@@ -383,7 +383,7 @@ void Crazyflie::writeFlash(
 
       // write flash
       bootloaderWriteFlashRequest req(target, 0, page - usedBuffers + 1, usedBuffers);
-      sendPacketOrTimeout((uint8_t*)&req, sizeof(req));
+      sendPacketOrTimeout((uint8_t*)&req, sizeof(req), false);
 
       auto start = std::chrono::system_clock::now();
 
@@ -391,7 +391,7 @@ void Crazyflie::writeFlash(
       while (true) {
         Crazyradio::Ack ack;
         bootloaderFlashStatusRequest statReq(target);
-        sendPacket((const uint8_t*)&statReq, sizeof(statReq), ack);
+        sendPacket((const uint8_t*)&statReq, sizeof(statReq), ack, false);
         if (   ack.ack
             && ack.size == 5
             && memcmp(&req, ack.data, 3) == 0) {
@@ -414,7 +414,7 @@ void Crazyflie::writeFlash(
         std::chrono::duration<double> elapsedSeconds = end-start;
         if (elapsedSeconds.count() > 0.5) {
           start = end;
-          sendPacketOrTimeout((uint8_t*)&req, sizeof(req));
+          sendPacketOrTimeout((uint8_t*)&req, sizeof(req), false);
           ++tries;
           if (tries > 5) {
             throw std::runtime_error("timeout");
@@ -444,7 +444,7 @@ void Crazyflie::readFlash(
   bootloaderGetInfoRequest req(target);
   startBatchRequest();
   addRequest(req, 3);
-  handleRequests(/*crtpMode=*/false);
+  handleRequests(/*crtpMode=*/false, /*useSafelink*/false);
   const bootloaderGetInfoResponse* response = getRequestResult<bootloaderGetInfoResponse>(0);
   uint16_t pageSize = response->pageSize;
   uint16_t flashStart = response->flashStart;
@@ -478,7 +478,7 @@ void Crazyflie::readFlash(
       }
     }
   }
-  handleRequests(/*crtpMode=*/false);
+  handleRequests(/*crtpMode=*/false, /*useSafelink*/false);
 
   // update output
   data.resize(size);
@@ -877,20 +877,22 @@ void Crazyflie::setParam(uint8_t id, const ParamValue& value)
 
 bool Crazyflie::sendPacket(
   const uint8_t* data,
-  uint32_t length)
+  uint32_t length,
+  bool useSafeLink)
 {
   Crazyradio::Ack ack;
-  sendPacket(data, length, ack);
+  sendPacket(data, length, ack, useSafeLink);
   return ack.ack;
 }
 
  void Crazyflie::sendPacketOrTimeout(
    const uint8_t* data,
    uint32_t length,
+   bool useSafeLink,
    float timeout)
 {
   auto start = std::chrono::system_clock::now();
-  while (!sendPacket(data, length)) {
+  while (!sendPacket(data, length, useSafeLink)) {
     auto end = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsedSeconds = end-start;
     if (elapsedSeconds.count() > timeout) {
@@ -902,7 +904,8 @@ bool Crazyflie::sendPacket(
 void Crazyflie::sendPacket(
   const uint8_t* data,
   uint32_t length,
-  Crazyradio::Ack& ack)
+  Crazyradio::Ack& ack,
+  bool useSafeLink)
 {
   static uint32_t numPackets = 0;
   static uint32_t numAcks = 0;
@@ -928,16 +931,19 @@ void Crazyflie::sendPacket(
     //    payload are lost and no uplink packet are duplicated.
     //    The caller should resend packet if not acked (ie. same as with a
     //    direct call to crazyradio.send_packet)
-
-    std::vector<uint8_t> dataCopy(data, data + length);
-    dataCopy[0] &= 0xF3;
-    dataCopy[0] |= m_curr_up << 3 | m_curr_down << 2;
-    m_radio->sendPacket(dataCopy.data(), length, ack);
-    if (ack.ack && ack.size > 0 && (ack.data[0] & 0x04) == (m_curr_down << 2)) {
-      m_curr_down = 1 - m_curr_down;
-    }
-    if (ack.ack) {
-      m_curr_up = 1 - m_curr_up;
+    if (useSafeLink) {
+      std::vector<uint8_t> dataCopy(data, data + length);
+      dataCopy[0] &= 0xF3;
+      dataCopy[0] |= m_curr_up << 3 | m_curr_down << 2;
+      m_radio->sendPacket(dataCopy.data(), length, ack);
+      if (ack.ack && ack.size > 0 && (ack.data[0] & 0x04) == (m_curr_down << 2)) {
+        m_curr_down = 1 - m_curr_down;
+      }
+      if (ack.ack) {
+        m_curr_up = 1 - m_curr_up;
+      }
+    } else {
+      m_radio->sendPacket(data, length, ack);
     }
 
   } else {
@@ -1105,6 +1111,7 @@ void Crazyflie::addRequest(
 
 void Crazyflie::handleRequests(
   bool crtpMode,
+  bool useSafeLink,
   float baseTime,
   float timePerRequest)
 {
@@ -1120,7 +1127,7 @@ void Crazyflie::handleRequests(
       for (const auto& request : m_batchRequests) {
         if (!request.finished) {
           // std::cout << "sendReq" << std::endl;
-          sendPacket(request.request.data(), request.request.size(), ack);
+          sendPacket(request.request.data(), request.request.size(), ack, useSafeLink);
           handleBatchAck(ack, crtpMode);
 
           auto end = std::chrono::system_clock::now();
@@ -1134,7 +1141,7 @@ void Crazyflie::handleRequests(
     } else {
       for (size_t i = 0; i < 10; ++i) {
         uint8_t ping = 0xFF;
-        sendPacket(&ping, sizeof(ping), ack);
+        sendPacket(&ping, sizeof(ping), ack, useSafeLink);
         handleBatchAck(ack, crtpMode);
         // if (ack.ack && crtpPlatformRSSIAck::match(ack)) {
         //   sendPing = false;

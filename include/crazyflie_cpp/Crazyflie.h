@@ -302,15 +302,18 @@ private:
   void sendPacket(
     const uint8_t* data,
     uint32_t length,
-    Crazyradio::Ack& result);
+    Crazyradio::Ack& result,
+    bool useSafeLink = true);
 
   bool sendPacket(
     const uint8_t* data,
-    uint32_t length);
+    uint32_t length,
+    bool useSafeLink = true);
 
  void sendPacketOrTimeout(
    const uint8_t* data,
    uint32_t length,
+   bool useSafeLink = true,
    float timeout = 1.0);
 
   void handleAck(
@@ -345,6 +348,7 @@ private:
 
   void handleRequests(
     bool crtpMode = true,
+    bool useSafeLink = true,
     float baseTime = 2.0,
     float timePerRequest = 0.2);
 
