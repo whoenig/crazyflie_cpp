@@ -43,7 +43,8 @@ Crazyflie::Crazyflie(
   , m_emptyAckCallback(nullptr)
   , m_linkQualityCallback(nullptr)
   , m_consoleCallback(nullptr)
-  , m_log_param_use_V2(false)
+  , m_log_use_V2(false)
+  , m_param_use_V2(false)
   , m_logger(logger)
 {
   int datarate;
@@ -506,7 +507,7 @@ void Crazyflie::setChannel(uint8_t channel)
 
 void Crazyflie::requestLogToc(bool forceNoCache)
 {
-  m_log_param_use_V2 = true;
+  m_log_use_V2 = true;
   uint16_t len;
   uint32_t crc;
 
@@ -519,7 +520,7 @@ void Crazyflie::requestLogToc(bool forceNoCache)
     crc = getRequestResult<crtpLogGetInfoV2Response>(0)->log_crc;
   } catch (std::runtime_error& e) {
     // std::cout << "Fall back to V1 param API" << std::endl;
-    m_log_param_use_V2 = false;
+    m_log_use_V2 = false;
 
     crtpLogGetInfoRequest infoRequest;
     startBatchRequest();
@@ -539,7 +540,7 @@ void Crazyflie::requestLogToc(bool forceNoCache)
 
     // Request detailed information
     startBatchRequest();
-    if (m_log_param_use_V2) {
+    if (m_log_use_V2) {
       for (size_t i = 0; i < len; ++i) {
         crtpLogGetItemV2Request itemRequest(i);
         addRequest(itemRequest, 2);
@@ -554,7 +555,7 @@ void Crazyflie::requestLogToc(bool forceNoCache)
 
     // Update internal structure with obtained data
     m_logTocEntries.resize(len);
-    if (m_log_param_use_V2) {
+    if (m_log_use_V2) {
       for (size_t i = 0; i < len; ++i) {
         auto response = getRequestResult<crtpLogGetItemV2Response>(i);
         LogTocEntry& entry = m_logTocEntries[i];
@@ -611,7 +612,7 @@ void Crazyflie::requestLogToc(bool forceNoCache)
 
 void Crazyflie::requestParamToc(bool forceNoCache)
 {
-  bool hasV2_support = true;
+  m_param_use_V2 = true;
   uint16_t numParam;
   uint32_t crc;
   // Find the number of parameters in TOC
@@ -625,7 +626,7 @@ void Crazyflie::requestParamToc(bool forceNoCache)
     crc = getRequestResult<crtpParamTocGetInfoV2Response>(0)->crc;
   } catch (std::runtime_error& e) {
     // std::cout << "Fall back to V1 param API" << std::endl;
-    hasV2_support = false;
+    m_param_use_V2 = false;
 
     crtpParamTocGetInfoRequest infoRequest;
     startBatchRequest();
@@ -644,7 +645,7 @@ void Crazyflie::requestParamToc(bool forceNoCache)
 
     // Request detailed information and values
     startBatchRequest();
-    if (!hasV2_support) {
+    if (!m_param_use_V2) {
       for (uint16_t i = 0; i < numParam; ++i) {
         crtpParamTocGetItemRequest itemRequest(i);
         addRequest(itemRequest, 2);
@@ -663,7 +664,7 @@ void Crazyflie::requestParamToc(bool forceNoCache)
     // Update internal structure with obtained data
     m_paramTocEntries.resize(numParam);
 
-    if (!hasV2_support) {
+    if (!m_param_use_V2) {
       for (uint16_t i = 0; i < numParam; ++i) {
         auto r = getRequestResult<crtpParamTocGetItemResponse>(i*2+0);
         auto val = getRequestResult<crtpParamValueResponse>(i*2+1);
@@ -734,7 +735,7 @@ void Crazyflie::requestParamToc(bool forceNoCache)
     }
 
     // Request values
-    if (!hasV2_support) {
+    if (!m_param_use_V2) {
       startBatchRequest();
       for (size_t i = 0; i < numParam; ++i) {
         crtpParamReadRequest readRequest(i);
@@ -807,49 +808,96 @@ void Crazyflie::addSetParam(uint8_t id, const ParamValue& value)
   for (auto&& entry : m_paramTocEntries) {
     if (entry.id == id) {
       found = true;
-      switch (entry.type) {
-        case ParamTypeUint8:
-          {
-            crtpParamWriteRequest<uint8_t> request(id, value.valueUint8);
-            addRequest(request, 1);
-            break;
-          }
-        case ParamTypeInt8:
-          {
-            crtpParamWriteRequest<int8_t> request(id, value.valueInt8);
-            addRequest(request, 1);
-            break;
-          }
-        case ParamTypeUint16:
-          {
-            crtpParamWriteRequest<uint16_t> request(id, value.valueUint16);
-            addRequest(request, 1);
-            break;
-          }
-        case ParamTypeInt16:
-          {
-            crtpParamWriteRequest<int16_t> request(id, value.valueInt16);
-            addRequest(request, 1);
-            break;
-          }
-        case ParamTypeUint32:
-          {
-            crtpParamWriteRequest<uint32_t> request(id, value.valueUint32);
-            addRequest(request, 1);
-            break;
-          }
-        case ParamTypeInt32:
-          {
-            crtpParamWriteRequest<int32_t> request(id, value.valueInt32);
-            addRequest(request, 1);
-            break;
-          }
-        case ParamTypeFloat:
-          {
-            crtpParamWriteRequest<float> request(id, value.valueFloat);
-            addRequest(request, 1);
-            break;
-          }
+      if (!m_param_use_V2) {
+        switch (entry.type) {
+          case ParamTypeUint8:
+            {
+              crtpParamWriteRequest<uint8_t> request(id, value.valueUint8);
+              addRequest(request, 1);
+              break;
+            }
+          case ParamTypeInt8:
+            {
+              crtpParamWriteRequest<int8_t> request(id, value.valueInt8);
+              addRequest(request, 1);
+              break;
+            }
+          case ParamTypeUint16:
+            {
+              crtpParamWriteRequest<uint16_t> request(id, value.valueUint16);
+              addRequest(request, 1);
+              break;
+            }
+          case ParamTypeInt16:
+            {
+              crtpParamWriteRequest<int16_t> request(id, value.valueInt16);
+              addRequest(request, 1);
+              break;
+            }
+          case ParamTypeUint32:
+            {
+              crtpParamWriteRequest<uint32_t> request(id, value.valueUint32);
+              addRequest(request, 1);
+              break;
+            }
+          case ParamTypeInt32:
+            {
+              crtpParamWriteRequest<int32_t> request(id, value.valueInt32);
+              addRequest(request, 1);
+              break;
+            }
+          case ParamTypeFloat:
+            {
+              crtpParamWriteRequest<float> request(id, value.valueFloat);
+              addRequest(request, 1);
+              break;
+            }
+        }
+      } else {
+        switch (entry.type) {
+          case ParamTypeUint8:
+            {
+              crtpParamWriteV2Request<uint8_t> request(id, value.valueUint8);
+              addRequest(request, 2);
+              break;
+            }
+          case ParamTypeInt8:
+            {
+              crtpParamWriteV2Request<int8_t> request(id, value.valueInt8);
+              addRequest(request, 2);
+              break;
+            }
+          case ParamTypeUint16:
+            {
+              crtpParamWriteV2Request<uint16_t> request(id, value.valueUint16);
+              addRequest(request, 2);
+              break;
+            }
+          case ParamTypeInt16:
+            {
+              crtpParamWriteV2Request<int16_t> request(id, value.valueInt16);
+              addRequest(request, 2);
+              break;
+            }
+          case ParamTypeUint32:
+            {
+              crtpParamWriteV2Request<uint32_t> request(id, value.valueUint32);
+              addRequest(request, 2);
+              break;
+            }
+          case ParamTypeInt32:
+            {
+              crtpParamWriteV2Request<int32_t> request(id, value.valueInt32);
+              addRequest(request, 2);
+              break;
+            }
+          case ParamTypeFloat:
+            {
+              crtpParamWriteV2Request<float> request(id, value.valueFloat);
+              addRequest(request, 2);
+              break;
+            }
+        }
       }
     }
   }
