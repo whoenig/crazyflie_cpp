@@ -458,7 +458,8 @@ private:
   int m_curr_up;
   int m_curr_down;
 
-  bool m_log_param_use_V2;
+  bool m_log_use_V2;
+  bool m_param_use_V2;
 
   // logging
   Logger& m_logger;
@@ -477,7 +478,7 @@ public:
     , m_id(0)
   {
     m_id = m_cf->registerLogBlock([=](crtpLogDataResponse* r, uint8_t s) { this->handleData(r, s);});
-    if (m_cf->m_log_param_use_V2) {
+    if (m_cf->m_log_use_V2) {
       crtpLogCreateBlockV2Request request;
       request.id = m_id;
       int i = 0;
@@ -595,7 +596,7 @@ public:
     , m_id(0)
   {
     m_id = m_cf->registerLogBlock([=](crtpLogDataResponse* r, uint8_t s) { this->handleData(r, s);});
-    if (m_cf->m_log_param_use_V2) {
+    if (m_cf->m_log_use_V2) {
       crtpLogCreateBlockV2Request request;
       request.id = m_id;
       int i = 0;
