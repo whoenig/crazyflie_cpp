@@ -114,8 +114,10 @@ Crazyflie::Crazyflie(
   }
 
   // enable safelink
-  const uint8_t enable_safelink[] = {0xFF, 0x05, 0x01};
-  sendPacketOrTimeout(enable_safelink, sizeof(enable_safelink), false);
+  if (ENABLE_SAFELINK) {
+    const uint8_t enable_safelink[] = {0xFF, 0x05, 0x01};
+    sendPacketOrTimeout(enable_safelink, sizeof(enable_safelink), false);
+  }
 
   m_curr_up = 0;
   m_curr_down = 0;

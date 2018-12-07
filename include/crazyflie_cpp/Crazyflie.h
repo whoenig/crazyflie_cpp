@@ -11,6 +11,8 @@
 #include <map>
 #include <chrono>
 
+#define ENABLE_SAFELINK 0
+
 class Logger
 {
 public:
@@ -303,17 +305,17 @@ private:
     const uint8_t* data,
     uint32_t length,
     Crazyradio::Ack& result,
-    bool useSafeLink = true);
+    bool useSafeLink = ENABLE_SAFELINK);
 
   bool sendPacket(
     const uint8_t* data,
     uint32_t length,
-    bool useSafeLink = true);
+    bool useSafeLink = ENABLE_SAFELINK);
 
  void sendPacketOrTimeout(
    const uint8_t* data,
    uint32_t length,
-   bool useSafeLink = true,
+   bool useSafeLink = ENABLE_SAFELINK,
    float timeout = 1.0);
 
   void handleAck(
@@ -348,7 +350,7 @@ private:
 
   void handleRequests(
     bool crtpMode = true,
-    bool useSafeLink = true,
+    bool useSafeLink = ENABLE_SAFELINK,
     float baseTime = 2.0,
     float timePerRequest = 0.2);
 
