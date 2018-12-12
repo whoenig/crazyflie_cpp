@@ -1095,7 +1095,9 @@ void Crazyflie::handleAck(
     // for (size_t i = 1; i < result.size; ++i) {
     //   std::cout << "    " << (int)result.data[i] << std::endl;
     // }
-    queueGenericPacket(result);
+    if (m_genericPacketCallback) {
+      m_genericPacketCallback(result);
+    }
   }
 }
 

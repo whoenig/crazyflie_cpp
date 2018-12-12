@@ -255,16 +255,10 @@ public:
     }
   }
 
-  /**
-   * Returns a copy of the en-queued CRTP packets which were not handled by
-   * handleAck.
-   * @return  A vector of Ack data structures, where each Ack contains the data
-   * from a single packet.
-   */
-  std::vector<ITransport::Ack> retrieveGenericPackets() {
-    std::vector<ITransport::Ack> packets = m_generic_packets;
-    m_generic_packets.clear();
-    return packets;
+
+  void setGenericPacketCallback(
+    std::function<void(const ITransport::Ack&)> cb) {
+    m_genericPacketCallback = cb;
   }
 
   /**
@@ -321,16 +315,7 @@ private:
   void handleAck(
     const ITransport::Ack& result);
 
-  std::vector<ITransport::Ack> m_generic_packets;
   std::vector<crtpPacket_t> m_outgoing_packets;
-
-  /**
-   * En-queues an unhandled Ack into a vector so that it can be retrieved later.
-   * @param result The unhandled Ack to be en-queued.
-   */
-  void queueGenericPacket(const ITransport::Ack& result) {
-    m_generic_packets.push_back(result);
-  }
 
   void startBatchRequest();
 
@@ -441,6 +426,7 @@ private:
   std::function<void(const crtpPlatformRSSIAck*)> m_emptyAckCallback;
   std::function<void(float)> m_linkQualityCallback;
   std::function<void(const char*)> m_consoleCallback;
+  std::function<void(const ITransport::Ack&)> m_genericPacketCallback;
 
   template<typename T>
   friend class LogBlock;
