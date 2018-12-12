@@ -261,8 +261,8 @@ public:
    * @return  A vector of Ack data structures, where each Ack contains the data
    * from a single packet.
    */
-  std::vector<Crazyradio::Ack> retrieveGenericPackets() {
-    std::vector<Crazyradio::Ack> packets = m_generic_packets;
+  std::vector<ITransport::Ack> retrieveGenericPackets() {
+    std::vector<ITransport::Ack> packets = m_generic_packets;
     m_generic_packets.clear();
     return packets;
   }
@@ -304,7 +304,7 @@ private:
   void sendPacket(
     const uint8_t* data,
     uint32_t length,
-    Crazyradio::Ack& result,
+    ITransport::Ack& result,
     bool useSafeLink = ENABLE_SAFELINK);
 
   bool sendPacket(
@@ -319,16 +319,16 @@ private:
    float timeout = 1.0);
 
   void handleAck(
-    const Crazyradio::Ack& result);
+    const ITransport::Ack& result);
 
-  std::vector<Crazyradio::Ack> m_generic_packets;
+  std::vector<ITransport::Ack> m_generic_packets;
   std::vector<crtpPacket_t> m_outgoing_packets;
 
   /**
    * En-queues an unhandled Ack into a vector so that it can be retrieved later.
    * @param result The unhandled Ack to be en-queued.
    */
-  void queueGenericPacket(const Crazyradio::Ack& result) {
+  void queueGenericPacket(const ITransport::Ack& result) {
     m_generic_packets.push_back(result);
   }
 
@@ -356,7 +356,7 @@ private:
 
 
   void handleBatchAck(
-    const Crazyradio::Ack& result,
+    const ITransport::Ack& result,
     bool crtpMode);
 
   template<typename R>

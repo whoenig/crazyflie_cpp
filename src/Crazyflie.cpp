@@ -392,7 +392,7 @@ void Crazyflie::writeFlash(
 
       size_t tries = 0;
       while (true) {
-        Crazyradio::Ack ack;
+        ITransport::Ack ack;
         bootloaderFlashStatusRequest statReq(target);
         sendPacket((const uint8_t*)&statReq, sizeof(statReq), ack, false);
         if (   ack.ack
@@ -930,7 +930,7 @@ bool Crazyflie::sendPacket(
   uint32_t length,
   bool useSafeLink)
 {
-  Crazyradio::Ack ack;
+  ITransport::Ack ack;
   sendPacket(data, length, ack, useSafeLink);
   return ack.ack;
 }
@@ -954,7 +954,7 @@ bool Crazyflie::sendPacket(
 void Crazyflie::sendPacket(
   const uint8_t* data,
   uint32_t length,
-  Crazyradio::Ack& ack,
+  ITransport::Ack& ack,
   bool useSafeLink)
 {
   static uint32_t numPackets = 0;
@@ -1018,7 +1018,7 @@ void Crazyflie::sendPacket(
 }
 
 void Crazyflie::handleAck(
-  const Crazyradio::Ack& result)
+  const ITransport::Ack& result)
 {
   if (crtpConsoleResponse::match(result)) {
     if (result.size > 0) {
@@ -1166,7 +1166,7 @@ void Crazyflie::handleRequests(
   float timePerRequest)
 {
   auto start = std::chrono::system_clock::now();
-  Crazyradio::Ack ack;
+  ITransport::Ack ack;
   m_numRequestsFinished = 0;
   bool sendPing = false;
 
@@ -1213,7 +1213,7 @@ void Crazyflie::handleRequests(
 }
 
 void Crazyflie::handleBatchAck(
-  const Crazyradio::Ack& ack,
+  const ITransport::Ack& ack,
   bool crtpMode)
 {
   if (ack.ack) {
@@ -1513,7 +1513,7 @@ static inline uint32_t quatcompress(float const q[4])
   // this avoids having to send its sign bit.
   unsigned negate = q[i_largest] < 0;
 
-  // 1/sqrt(2) is the largest possible value 
+  // 1/sqrt(2) is the largest possible value
   // of the second-largest element in a unit quaternion.
 
   // do compression using sign bit and 9-bit precision per element.
