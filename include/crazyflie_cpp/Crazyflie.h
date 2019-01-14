@@ -19,9 +19,9 @@ public:
   Logger() {}
   virtual ~Logger() {}
 
-  virtual void info(const std::string& msg) {}
-  virtual void warning(const std::string& msg) {}
-  virtual void error(const std::string& msg) {}
+  virtual void info(const std::string& /*msg*/) {}
+  virtual void warning(const std::string& /*msg*/) {}
+  virtual void error(const std::string& /*msg*/) {}
 };
 
 extern Logger EmptyLogger;
@@ -687,7 +687,7 @@ public:
   }
 
 private:
-  void handleData(crtpLogDataResponse* response, uint8_t size) {
+  void handleData(crtpLogDataResponse* response, uint8_t /*size*/) {
 
     std::vector<double> result;
     size_t pos = 0;
