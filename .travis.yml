@@ -1,9 +1,9 @@
 language: cpp
 dist: xenial
 
-compiler:
-  - gcc
-  - clang
+# compiler:
+#   - gcc
+#   - clang
 
 before_script:
   - mkdir build
@@ -11,6 +11,6 @@ before_script:
   - cmake ..
 
 before_install:
-  - sudo apt-get install -y libusb-dev
+  - sudo apt-get install -y libusb-1.0-0-dev
 
 script: make
