@@ -250,8 +250,11 @@ public:
       case LogTypeUint32:
       case LogTypeInt32:
       case LogTypeFloat:
-      return 4;
-      break;
+        return 4;
+        break;
+      default:
+        // assert(false);
+        return 0;
     }
   }
 
