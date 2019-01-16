@@ -124,6 +124,14 @@ Crazyflie::Crazyflie(
 
 }
 
+Crazyflie::~Crazyflie()
+{
+  for (size_t i = 0; i < MAX_USB; ++i) {
+    delete g_crazyflieUSB[i];
+  }
+
+}
+
 void Crazyflie::logReset()
 {
   crtpLogResetRequest request;
