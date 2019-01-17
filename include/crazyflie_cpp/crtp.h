@@ -634,6 +634,25 @@ struct crtpLogStartRequest
 } __attribute__((packed));
 CHECKSIZE(crtpLogStartRequest)
 
+struct crtpLogStartV2Request
+{
+  crtpLogStartV2Request(
+    uint8_t id,
+    uint16_t period)
+    : header(5, 1)
+    , command(8)
+    , id(id)
+    , period(period)
+    {
+    }
+
+    const crtp header;
+    const uint8_t command;
+    uint8_t id;
+    uint16_t period; // in ms
+} __attribute__((packed));
+CHECKSIZE(crtpLogStartV2Request)
+
 struct crtpLogStopRequest
 {
   crtpLogStopRequest(
@@ -799,6 +818,21 @@ struct crtpLogCreateBlockV2Request
 } __attribute__((packed));
 CHECKSIZE(crtpLogCreateBlockV2Request)
 
+struct crtpLogAppendBlockV2Request
+{
+  crtpLogAppendBlockV2Request()
+  : header(5, 1)
+  , command(7)
+  {
+  }
+
+  const crtp header;
+  const uint8_t command;
+  uint8_t id;
+  logBlockItemV2 items[9];
+} __attribute__((packed));
+CHECKSIZE(crtpLogAppendBlockV2Request)
+
 
 // Port 0x06 (External Position Update)
 
@@ -904,6 +938,22 @@ struct crtpFullStateSetpointRequest
   int16_t omegaz;
 } __attribute__((packed));
 CHECKSIZE(crtpFullStateSetpointRequest)
+
+struct crtpMotorSpeedSetpointRequest
+{
+  crtpMotorSpeedSetpointRequest(
+    uint16_t ratio_m1,
+    uint16_t ratio_m2,
+    uint16_t ratio_m3,
+    uint16_t ratio_m4);
+  const crtp header;
+  uint8_t type;
+  uint16_t ratio_m1;
+  uint16_t ratio_m2;
+  uint16_t ratio_m3;
+  uint16_t ratio_m4;
+} __attribute__((packed));
+CHECKSIZE(crtpMotorSpeedSetpointRequest)
 
 // Port 0x08 (High-level Setpoints)
 

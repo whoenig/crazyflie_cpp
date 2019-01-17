@@ -120,3 +120,16 @@ crtpPositionSetpointRequest::crtpPositionSetpointRequest(
 	this->z = z;
 	this->yaw = yaw;
 }
+
+crtpMotorSpeedSetpointRequest::crtpMotorSpeedSetpointRequest(
+    uint16_t ratio_m1,
+    uint16_t ratio_m2,
+    uint16_t ratio_m3,
+    uint16_t ratio_m4)
+	: header(0X07, 0), type(8)
+{
+	this->ratio_m1 = ratio_m1;
+	this->ratio_m2 = ratio_m2;
+	this->ratio_m3 = ratio_m3;
+	this->ratio_m4 = ratio_m4;
+}

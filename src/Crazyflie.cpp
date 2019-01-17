@@ -192,6 +192,16 @@ void Crazyflie::sendFullStateSetpoint(
   sendPacket((const uint8_t*)&request, sizeof(request));
 }
 
+void Crazyflie::sendMotorSpeedSetpoint(
+  uint16_t ratio_m1,
+  uint16_t ratio_m2,
+  uint16_t ratio_m3,
+  uint16_t ratio_m4)
+{
+  crtpMotorSpeedSetpointRequest request(ratio_m1, ratio_m2, ratio_m3, ratio_m4);
+  sendPacket((const uint8_t*)&request, sizeof(request));
+}
+
 void Crazyflie::sendExternalPositionUpdate(
   float x,
   float y,

@@ -141,6 +141,12 @@ public:
     float z,
     float yaw);
 
+  void sendMotorSpeedSetpoint(
+    uint16_t ratio_m1,
+    uint16_t ratio_m2,
+    uint16_t ratio_m3,
+    uint16_t ratio_m4);
+
   void sendExternalPositionUpdate(
     float x,
     float y,
@@ -464,7 +470,7 @@ class LogBlock
 public:
   LogBlock(
     Crazyflie* cf,
-    std::list<std::pair<std::string, std::string> > variables,
+    std::vector<std::pair<std::string, std::string> > variables,
     std::function<void(uint32_t, T*)>& callback)
     : m_cf(cf)
     , m_callback(callback)
@@ -481,6 +487,10 @@ public:
           request.items[i].logType = entry->type;
           request.items[i].id = entry->id;
           ++i;
+          // we can only add up to 9 variables in this call
+          if (i == 9) {
+            break;
+          }
         }
         else {
           std::stringstream sstr;
@@ -499,6 +509,32 @@ public:
         sstr << "Could not create log block! Result: " << (int)r->result << " " << (int)m_id << " " << (int)r->requestByte1 << " " << (int)r->command;
         throw std::runtime_error(sstr.str());
       }
+
+      // Block created; now append any remaining variables
+      if (variables.size() > 9) {
+        crtpLogAppendBlockV2Request request;
+        request.id = m_id;
+        for (size_t i = 9, k = 0; i < variables.size(); ++i) {
+          const auto& pair = variables[i];
+          const Crazyflie::LogTocEntry* entry = m_cf->getLogTocEntry(pair.first, pair.second);
+          if (entry) {
+            request.items[k].logType = entry->type;
+            request.items[k].id = entry->id;
+            ++k;
+          }
+          else {
+            std::stringstream sstr;
+            sstr << "Could not find " << pair.first << "." << pair.second << " in log toc!";
+            throw std::runtime_error(sstr.str());
+          }
+
+          if (k == 9 || i == variables.size() - 1) {
+            m_cf->sendPacketOrTimeout(reinterpret_cast<const uint8_t*>(&request), 3 + 3*k);
+            k = 0;
+          }
+        }
+      }
+
     } else {
       crtpLogCreateBlockRequest request;
       request.id = m_id;
@@ -540,6 +576,14 @@ public:
   void start(uint8_t period)
   {
     crtpLogStartRequest request(m_id, period);
+    m_cf->startBatchRequest();
+    m_cf->addRequest(request, 2);
+    m_cf->handleRequests();
+  }
+
+  void startV2(uint16_t period)
+  {
+    crtpLogStartV2Request request(m_id, period);
     m_cf->startBatchRequest();
     m_cf->addRequest(request, 2);
     m_cf->handleRequests();
@@ -677,7 +721,17 @@ public:
 
   void start(uint8_t period)
   {
+    // period is in 10s of milliseconds, e.g., 1 means 10ms
     crtpLogStartRequest request(m_id, period);
+    m_cf->startBatchRequest();
+    m_cf->addRequest(request, 2);
+    m_cf->handleRequests();
+  }
+
+  void startV2(uint16_t period_in_ms)
+  {
+    // period is in ms
+    crtpLogStartV2Request request(m_id, period_in_ms);
     m_cf->startBatchRequest();
     m_cf->addRequest(request, 2);
     m_cf->handleRequests();
