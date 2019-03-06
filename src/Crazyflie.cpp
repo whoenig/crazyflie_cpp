@@ -3,7 +3,8 @@
 
 #include "Crazyflie.h"
 #include "crtp.h"
-#include "bootloader.h"
+#include "crtpBootloader.h"
+#include "crtpNRF51.h"
 
 #include "Crazyradio.h"
 #include "CrazyflieUSB.h"
@@ -222,10 +223,10 @@ void Crazyflie::transmitPackets()
 void Crazyflie::reboot()
 {
   if (m_radio) {
-    bootloaderResetInitRequest req1;
+    crtpNrf51ResetInitRequest req1;
     sendPacketOrTimeout(req1);
 
-    bootloaderResetRequest req2(/*bootToFirmware*/ 1);
+    crtpNrf51ResetRequest req2(/*bootToFirmware*/ 1);
     sendPacketOrTimeout(req2);
   }
 }
@@ -233,11 +234,11 @@ void Crazyflie::reboot()
 uint64_t Crazyflie::rebootToBootloader()
 {
   if (m_radio) {
-    bootloaderResetInitRequest req;
+    crtpNrf51ResetInitRequest req;
     startBatchRequest();
     addRequest(req, 2);
     handleRequests();
-    const bootloaderResetInitResponse* response = getRequestResult<bootloaderResetInitResponse>(0);
+    const crtpNrf51ResetInitResponse* response = getRequestResult<crtpNrf51ResetInitResponse>(0);
 
     uint64_t result =
         ((uint64_t)response->addr[0] << 0)
@@ -246,7 +247,7 @@ uint64_t Crazyflie::rebootToBootloader()
       | ((uint64_t)response->addr[3] << 24)
       | ((uint64_t)0xb1 << 32);
 
-    bootloaderResetRequest req2(/*bootToFirmware*/ 0);
+    crtpNrf51ResetRequest req2(/*bootToFirmware*/ 0);
     sendPacketOrTimeout(req2);
 
     return result;
@@ -258,7 +259,7 @@ uint64_t Crazyflie::rebootToBootloader()
 void Crazyflie::sysoff()
 {
   if (m_radio) {
-    bootloaderSysOffRequest req;
+    crtpNrf51SysOffRequest req;
     sendPacketOrTimeout(req);
   }
 }
@@ -266,7 +267,7 @@ void Crazyflie::sysoff()
 void Crazyflie::alloff()
 {
   if (m_radio) {
-    bootloaderAllOffRequest req;
+    crtpNrf51AllOffRequest req;
     sendPacketOrTimeout(req);
   }
 }
@@ -274,7 +275,7 @@ void Crazyflie::alloff()
 void Crazyflie::syson()
 {
   if (m_radio) {
-    bootloaderSysOnRequest req;
+    crtpNrf51SysOnRequest req;
     sendPacketOrTimeout(req);
   }
 }
@@ -282,11 +283,11 @@ void Crazyflie::syson()
 float Crazyflie::vbat()
 {
   if (m_radio) {
-    bootloaderGetVBatRequest req;
+    crtpNrf51GetVBatRequest req;
     startBatchRequest();
     addRequest(req, 2);
     handleRequests();
-    return getRequestResult<bootloaderGetVBatResponse>(0)->vbat;
+    return getRequestResult<crtpNrf51GetVBatResponse>(0)->vbat;
   } else {
     return nan("");
   }
