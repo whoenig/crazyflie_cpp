@@ -148,6 +148,10 @@ void Crazyradio::sendPacket(
         throw std::runtime_error("No valid device handle!");
     }
 
+    if (m_enableLogging) {
+        logPacket(data, length);
+    }
+
     // Send data
     status = libusb_bulk_transfer(
         m_handle,
@@ -184,6 +188,10 @@ void Crazyradio::sendPacket(
     }
 
     result.size = transferred - 1;
+
+    if (m_enableLogging) {
+        logAck(result);
+    }
 }
 
 void Crazyradio::sendPacketNoAck(
@@ -195,6 +203,10 @@ void Crazyradio::sendPacketNoAck(
 
     if (!m_handle) {
         throw std::runtime_error("No valid device handle!");
+    }
+
+    if (m_enableLogging) {
+        logPacket(data, length);
     }
 
     // Send data
@@ -227,6 +239,10 @@ void Crazyradio::send2PacketsNoAck(
 
     if (!m_handle) {
         throw std::runtime_error("No valid device handle!");
+    }
+
+    if (m_enableLogging) {
+        logPacket(data, totalLength);
     }
 
     // Send data

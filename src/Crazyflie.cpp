@@ -15,8 +15,9 @@
 #include <cmath>
 #include <inttypes.h>
 
-#define MAX_RADIOS 16
-#define MAX_USB     4
+const static int MAX_RADIOS = 16;
+const static int MAX_USB = 4;
+const static bool LOG_COMMUNICATION = 1;
 
 Crazyradio* g_crazyradios[MAX_RADIOS];
 std::mutex g_radioMutex[MAX_RADIOS];
@@ -83,6 +84,7 @@ Crazyflie::Crazyflie(
       std::unique_lock<std::mutex> mlock(g_radioMutex[m_devId]);
       if (!g_crazyradios[m_devId]) {
         g_crazyradios[m_devId] = new Crazyradio(m_devId);
+        g_crazyradios[m_devId]->enableLogging(LOG_COMMUNICATION);
         // g_crazyradios[m_devId]->setAckEnable(false);
         g_crazyradios[m_devId]->setAckEnable(true);
         g_crazyradios[m_devId]->setArc(0);
@@ -103,6 +105,7 @@ Crazyflie::Crazyflie(
       std::unique_lock<std::mutex> mlock(g_crazyflieusbMutex[m_devId]);
       if (!g_crazyflieUSB[m_devId]) {
         g_crazyflieUSB[m_devId] = new CrazyflieUSB(m_devId);
+        g_crazyflieUSB[m_devId]->enableLogging(LOG_COMMUNICATION);
       }
     }
 
@@ -1392,6 +1395,7 @@ CrazyflieBroadcaster::CrazyflieBroadcaster(
       std::unique_lock<std::mutex> mlock(g_radioMutex[m_devId]);
       if (!g_crazyradios[m_devId]) {
         g_crazyradios[m_devId] = new Crazyradio(m_devId);
+        g_crazyradios[m_devId]->enableLogging(LOG_COMMUNICATION);
         // g_crazyradios[m_devId]->setAckEnable(false);
         g_crazyradios[m_devId]->setAckEnable(true);
         g_crazyradios[m_devId]->setArc(0);

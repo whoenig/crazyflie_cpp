@@ -45,6 +45,10 @@ void CrazyflieUSB::sendPacket(
         throw std::runtime_error("No valid device handle!");
     }
 
+    if (m_enableLogging) {
+        logPacket(data, length);
+    }
+
     // Send data
     status = libusb_bulk_transfer(
         m_handle,
@@ -78,6 +82,10 @@ void CrazyflieUSB::sendPacket(
     result.ack = true;
 
     result.size = transferred;
+
+    if (m_enableLogging) {
+        logAck(result);
+    }
 }
 
 void CrazyflieUSB::sendPacketNoAck(
@@ -89,6 +97,10 @@ void CrazyflieUSB::sendPacketNoAck(
 
     if (!m_handle) {
         throw std::runtime_error("No valid device handle!");
+    }
+
+    if (m_enableLogging) {
+        logPacket(data, length);
     }
 
     // Send data
