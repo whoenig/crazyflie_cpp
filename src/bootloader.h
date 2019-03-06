@@ -162,13 +162,14 @@ struct bootloaderReadFlashResponse
   uint8_t data[25];
 } __attribute__((packed));
 
+//////////////////////////////////////////////////////////////////////
+
 // RESET_INIT
 
 struct bootloaderResetInitRequest
 {
-  bootloaderResetInitRequest(
-    uint8_t target)
-    : header(target, 0xFF)
+  bootloaderResetInitRequest()
+    : header(0xFE, 0xFF)
   {
   }
 
@@ -178,7 +179,7 @@ struct bootloaderResetInitRequest
 struct bootloaderResetInitResponse
 {
   bootloaderResetInitRequest request;
-  uint8_t addr[5];
+  uint8_t addr[6];
 } __attribute__((packed));
 
 // RESET
@@ -186,8 +187,9 @@ struct bootloaderResetInitResponse
 struct bootloaderResetRequest
 {
   bootloaderResetRequest(
-    uint8_t target)
-    : header(target, 0xF0)
+    uint8_t bootToFirmware)
+    : header(0xFE, 0xF0)
+    , bootToFirmware(bootToFirmware)
   {
   }
 
@@ -201,9 +203,8 @@ struct bootloaderResetRequest
 
 struct bootloaderAllOffRequest
 {
-  bootloaderAllOffRequest(
-    uint8_t target)
-    : header(target, 0x01)
+  bootloaderAllOffRequest()
+    : header(0xFE, 0x01)
   {
   }
 
@@ -216,9 +217,8 @@ struct bootloaderAllOffRequest
 
 struct bootloaderSysOffRequest
 {
-  bootloaderSysOffRequest(
-    uint8_t target)
-    : header(target, 0x02)
+  bootloaderSysOffRequest()
+    : header(0xFE, 0x02)
   {
   }
 
@@ -231,9 +231,8 @@ struct bootloaderSysOffRequest
 
 struct bootloaderSysOnRequest
 {
-  bootloaderSysOnRequest(
-    uint8_t target)
-    : header(target, 0x03)
+  bootloaderSysOnRequest()
+    : header(0xFE, 0x03)
   {
   }
 
@@ -246,9 +245,8 @@ struct bootloaderSysOnRequest
 
 struct bootloaderGetVBatRequest
 {
-  bootloaderGetVBatRequest(
-    uint8_t target)
-    : header(target, 0x04)
+  bootloaderGetVBatRequest()
+    : header(0xFE, 0x04)
   {
   }
 
@@ -259,4 +257,20 @@ struct bootloaderGetVBatResponse
 {
   bootloaderGetVBatRequest request;
   float vbat;
+} __attribute__((packed));
+
+//////////////////////////////////////////////////////////////////////
+
+struct crtpNrf51SetSafelinkRequest
+{
+
+  crtpNrf51SetSafelinkRequest(
+    uint8_t hasSafelink)
+    : hasSafelink(hasSafelink)
+  {
+  }
+
+  const uint8_t header1 = 0xFF;
+  const uint8_t header2 = 0x05;
+  uint8_t hasSafelink;
 } __attribute__((packed));

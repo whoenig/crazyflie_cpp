@@ -11,7 +11,7 @@
 #include <map>
 #include <chrono>
 
-#define ENABLE_SAFELINK 0
+#define ENABLE_SAFELINK 1
 
 class Logger
 {
@@ -150,7 +150,6 @@ public:
   // returns new address
   uint64_t rebootToBootloader();
   void sysoff();
-  void trySysOff();
   void alloff();
   void syson();
   float vbat();
@@ -162,8 +161,6 @@ public:
     BootloaderTarget target,
     size_t size,
     std::vector<uint8_t>& data);
-
-  void setChannel(uint8_t channel);
 
   void requestLogToc(bool forceNoCache=false);
 
@@ -304,16 +301,44 @@ private:
     ITransport::Ack& result,
     bool useSafeLink = ENABLE_SAFELINK);
 
+  template<typename R>
+  void sendPacket(
+    const R& request,
+    ITransport::Ack& result,
+    bool useSafeLink = ENABLE_SAFELINK)
+  {
+    sendPacket(
+      reinterpret_cast<const uint8_t*>(&request), sizeof(request), result, useSafeLink);
+  }
+
   bool sendPacket(
     const uint8_t* data,
     uint32_t length,
     bool useSafeLink = ENABLE_SAFELINK);
+
+  template<typename R>
+  void sendPacket(
+    const R& request,
+    bool useSafeLink = ENABLE_SAFELINK)
+  {
+    sendPacket(
+      reinterpret_cast<const uint8_t*>(&request), sizeof(request), useSafeLink);
+  }
 
  void sendPacketOrTimeout(
    const uint8_t* data,
    uint32_t length,
    bool useSafeLink = ENABLE_SAFELINK,
    float timeout = 1.0);
+
+  template<typename R>
+  void sendPacketOrTimeout(
+    const R& request,
+    bool useSafeLink = ENABLE_SAFELINK)
+  {
+    sendPacketOrTimeout(
+      reinterpret_cast<const uint8_t*>(&request), sizeof(request), useSafeLink);
+  }
 
   void handleAck(
     const ITransport::Ack& result);

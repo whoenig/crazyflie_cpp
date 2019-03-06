@@ -117,9 +117,9 @@ Crazyflie::Crazyflie(
   }
 
   // enable safelink
-  if (m_radio && ENABLE_SAFELINK) {
-    const uint8_t enable_safelink[] = {0xFF, 0x05, 0x01};
-    sendPacketOrTimeout(enable_safelink, sizeof(enable_safelink), false);
+  if (m_radio) {
+    crtpNrf51SetSafelinkRequest request(ENABLE_SAFELINK);
+    sendPacketOrTimeout(request, /*useSafeLink*/false);
   }
 
   m_curr_up = 0;
@@ -222,21 +222,21 @@ void Crazyflie::transmitPackets()
 void Crazyflie::reboot()
 {
   if (m_radio) {
-    const uint8_t reboot_init[] = {0xFF, 0xFE, 0xFF};
-    sendPacketOrTimeout(reboot_init, sizeof(reboot_init));
+    bootloaderResetInitRequest req1;
+    sendPacketOrTimeout(req1);
 
-    const uint8_t reboot_to_firmware[] = {0xFF, 0xFE, 0xF0, 0x01};
-    sendPacketOrTimeout(reboot_to_firmware, sizeof(reboot_to_firmware));
+    bootloaderResetRequest req2(/*bootToFirmware*/ 1);
+    sendPacketOrTimeout(req2);
   }
 }
 
 uint64_t Crazyflie::rebootToBootloader()
 {
   if (m_radio) {
-    bootloaderResetInitRequest req(TargetNRF51);
+    bootloaderResetInitRequest req;
     startBatchRequest();
-    addRequest(req, 3);
-    handleRequests(/*crtpMode=*/false);
+    addRequest(req, 2);
+    handleRequests();
     const bootloaderResetInitResponse* response = getRequestResult<bootloaderResetInitResponse>(0);
 
     uint64_t result =
@@ -246,13 +246,8 @@ uint64_t Crazyflie::rebootToBootloader()
       | ((uint64_t)response->addr[3] << 24)
       | ((uint64_t)0xb1 << 32);
 
-    const uint8_t reboot_to_bootloader[] = {0xFF, 0xFE, 0xF0, 0x00};
-    // for (size_t i = 0; i < 10; ++i) {
-    //   if (sendPacket(reboot_to_bootloader, sizeof(reboot_to_bootloader))) {
-    //     break;
-    //   }
-    // }
-    sendPacketOrTimeout(reboot_to_bootloader, sizeof(reboot_to_bootloader));
+    bootloaderResetRequest req2(/*bootToFirmware*/ 0);
+    sendPacketOrTimeout(req2);
 
     return result;
   } else {
@@ -263,55 +258,35 @@ uint64_t Crazyflie::rebootToBootloader()
 void Crazyflie::sysoff()
 {
   if (m_radio) {
-    const uint8_t shutdown[] = {0xFF, 0xFE, 0x02};
-    sendPacketOrTimeout(shutdown, sizeof(shutdown));
-  }
-}
-
-void Crazyflie::trySysOff()
-{
-  if (m_radio) {
-    const uint8_t shutdown[] = {0xFF, 0xFE, 0x02};
-    for (size_t i = 0; i < 10; ++i) {
-      if (sendPacket(shutdown, sizeof(shutdown))) {
-        break;
-      }
-    }
+    bootloaderSysOffRequest req;
+    sendPacketOrTimeout(req);
   }
 }
 
 void Crazyflie::alloff()
 {
   if (m_radio) {
-    const uint8_t shutdown[] = {0xFF, 0xFE, 0x01};
-    sendPacketOrTimeout(shutdown, sizeof(shutdown));
+    bootloaderAllOffRequest req;
+    sendPacketOrTimeout(req);
   }
 }
 
 void Crazyflie::syson()
 {
   if (m_radio) {
-    const uint8_t shutdown[] = {0xFF, 0xFE, 0x03};
-    sendPacketOrTimeout(shutdown, sizeof(shutdown));
+    bootloaderSysOnRequest req;
+    sendPacketOrTimeout(req);
   }
 }
 
 float Crazyflie::vbat()
 {
   if (m_radio) {
-    struct nrf51vbatResponse
-    {
-      uint8_t dummy1;
-      uint8_t dummy2;
-      uint8_t dummy3;
-      float vbat;
-    } __attribute__((packed));
-
-    const uint8_t shutdown[] = {0xFF, 0xFE, 0x04};
+    bootloaderGetVBatRequest req;
     startBatchRequest();
-    addRequest(shutdown, 2);
+    addRequest(req, 2);
     handleRequests();
-    return getRequestResult<nrf51vbatResponse>(0)->vbat;
+    return getRequestResult<bootloaderGetVBatResponse>(0)->vbat;
   } else {
     return nan("");
   }
@@ -519,14 +494,6 @@ void Crazyflie::readFlash(
         break;
       }
     }
-  }
-}
-
-void Crazyflie::setChannel(uint8_t channel)
-{
-  if (m_radio) {
-    const uint8_t setChannel[] = {0xFF, 0x03, 0x01, channel};
-    sendPacketOrTimeout(setChannel, sizeof(setChannel));
   }
 }
 
