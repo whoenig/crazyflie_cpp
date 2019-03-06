@@ -18,7 +18,7 @@
 
 const static int MAX_RADIOS = 16;
 const static int MAX_USB = 4;
-const static bool LOG_COMMUNICATION = 1;
+const static bool LOG_COMMUNICATION = 0;
 
 Crazyradio* g_crazyradios[MAX_RADIOS];
 std::mutex g_radioMutex[MAX_RADIOS];
