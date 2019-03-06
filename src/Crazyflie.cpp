@@ -126,6 +126,26 @@ Crazyflie::Crazyflie(
   m_curr_up = 0;
   m_curr_down = 0;
 
+  m_protocolVersion = getProtocolVersion();
+
+}
+
+int Crazyflie::getProtocolVersion()
+{
+  crtpGetProtocolVersionRequest req;
+  startBatchRequest();
+  addRequest(req, 1);
+  handleRequests();
+  return getRequestResult<crtpGetProtocolVersionResponse>(0)->version;
+}
+
+std::string Crazyflie::getFirmwareVersion()
+{
+  crtpGetFirmwareVersionRequest req;
+  startBatchRequest();
+  addRequest(req, 1);
+  handleRequests();
+  return std::string(getRequestResult<crtpGetFirmwareVersionResponse>(0)->version);
 }
 
 void Crazyflie::logReset()
@@ -507,11 +527,11 @@ void Crazyflie::requestLogToc(bool forceNoCache)
   crtpLogGetInfoV2Request infoRequest;
   startBatchRequest();
   addRequest(infoRequest, 1);
-  try {
+  if (m_protocolVersion >= 4) {
     handleRequests();
     len = getRequestResult<crtpLogGetInfoV2Response>(0)->log_len;
     crc = getRequestResult<crtpLogGetInfoV2Response>(0)->log_crc;
-  } catch (std::runtime_error& e) {
+  } else {
     // std::cout << "Fall back to V1 param API" << std::endl;
     m_log_use_V2 = false;
 
@@ -613,11 +633,11 @@ void Crazyflie::requestParamToc(bool forceNoCache)
   startBatchRequest();
   // std::cout << "infoReq" << std::endl;
   addRequest(infoRequest, 1);
-  try {
+  if (m_protocolVersion >= 4) {
     handleRequests();
     numParam = getRequestResult<crtpParamTocGetInfoV2Response>(0)->numParam;
     crc = getRequestResult<crtpParamTocGetInfoV2Response>(0)->crc;
-  } catch (std::runtime_error& e) {
+  } else {
     // std::cout << "Fall back to V1 param API" << std::endl;
     m_param_use_V2 = false;
 

@@ -1123,6 +1123,45 @@ CHECKSIZE(crtpPosExtBringup)
 
 // Port 13 (Platform)
 
+struct crtpGetProtocolVersionRequest
+{
+  crtpGetProtocolVersionRequest()
+    : header(0x0D, 1)
+    {
+    }
+
+    const crtp header;
+    const uint8_t cmd = 0;
+} __attribute__((packed));
+CHECKSIZE(crtpGetProtocolVersionRequest)
+
+struct crtpGetProtocolVersionResponse
+{
+  crtpGetProtocolVersionRequest request;
+  int version;
+} __attribute__((packed));
+CHECKSIZE_RESPONSE(crtpGetProtocolVersionResponse)
+
+struct crtpGetFirmwareVersionRequest
+{
+  crtpGetFirmwareVersionRequest()
+    : header(0x0D, 1)
+    {
+    }
+
+    const crtp header;
+    const uint8_t cmd = 1;
+} __attribute__((packed));
+CHECKSIZE(crtpGetProtocolVersionRequest)
+
+struct crtpGetFirmwareVersionResponse
+{
+  crtpGetFirmwareVersionRequest request;
+  char version[30];
+} __attribute__((packed));
+CHECKSIZE_RESPONSE(crtpGetFirmwareVersionResponse)
+
+
 // The crazyflie-nrf firmware sends empty packets with the signal strength, if nothing else is in the queue
 struct crtpPlatformRSSIAck
 {

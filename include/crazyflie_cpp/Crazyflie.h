@@ -110,6 +110,10 @@ public:
     const std::string& link_uri,
     Logger& logger = EmptyLogger);
 
+  int getProtocolVersion();
+
+  std::string getFirmwareVersion();
+
   void logReset();
 
   void sendSetpoint(
@@ -476,6 +480,8 @@ private:
 
   bool m_log_use_V2;
   bool m_param_use_V2;
+
+  int m_protocolVersion;
 
   // logging
   Logger& m_logger;
