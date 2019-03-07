@@ -161,3 +161,18 @@ struct bootloaderReadFlashResponse
   bootloaderReadFlashRequest request;
   uint8_t data[25];
 } __attribute__((packed));
+
+// RESET
+
+struct bootloaderResetRequest
+{
+  bootloaderResetRequest(
+    uint8_t bootToFirmware)
+    : header(0xFE, 0xF0)
+    , bootToFirmware(bootToFirmware)
+  {
+  }
+
+  bootloader header;
+  uint8_t bootToFirmware; //0=boot to bootloader; otherwise: boot to firmware
+} __attribute__((packed));

@@ -270,9 +270,23 @@ uint64_t Crazyflie::rebootToBootloader()
     crtpNrf51ResetRequest req2(/*bootToFirmware*/ 0);
     sendPacketOrTimeout(req2);
 
+    // switch to new address
+    m_address = result;
+    m_channel = 0;
+    m_datarate = Crazyradio::Datarate_2MPS;
+
+
     return result;
   } else {
     return -1;
+  }
+}
+
+void Crazyflie::rebootFromBootloader()
+{
+  if (m_radio) {
+    bootloaderResetRequest req(/*bootToFirmware*/ 1);
+    sendPacketOrTimeout(req, /*useSafeLink*/ false);
   }
 }
 
@@ -326,12 +340,6 @@ void Crazyflie::writeFlash(
   uint16_t pageSize = response->pageSize;
   uint16_t flashStart = response->flashStart;
   uint16_t nBuffPage = response->nBuffPage;
-  // std::cout << "pageSize: " << pageSize
-  //           << " nBuffPage: " << nBuffPage
-  //           << " nFlashPage: " << response->nFlashPage
-  //           << " flashStart: " << flashStart
-  //           << " version: " << (int)response->version
-  //           << std::endl;
 
   uint16_t numPages = ceil(data.size() / (float)pageSize);
   if (numPages + flashStart >= response->nFlashPage) {
@@ -339,14 +347,26 @@ void Crazyflie::writeFlash(
     sstr << "Requested size too large!";
     throw std::runtime_error(sstr.str());
   }
-  // std::cout << "numPages: " << numPages << std::endl;
+
+  std::stringstream sstr;
+  sstr << "pageSize: " << pageSize
+            << " nBuffPage: " << nBuffPage
+            << " nFlashPage: " << response->nFlashPage
+            << " flashStart: " << flashStart
+            << " version: " << (int)response->version
+            << " numPages: " << numPages;
+  m_logger.info(sstr.str());
 
   // write flash
   size_t offset = 0;
   uint16_t usedBuffers = 0;
   // startBatchRequest();
   for (uint16_t page = flashStart; page < numPages + flashStart; ++page) {
+    std::stringstream sstr;
+    sstr << "page: " << page - flashStart + 1 << " / " << numPages;
+    m_logger.info(sstr.str());
     for (uint16_t address = 0; address < pageSize; address += 25) {
+
       // std::cout << "request: " << page << " " << address << std::endl;
       bootloaderLoadBufferRequest req(target, usedBuffers, address);
       size_t requestedSize = std::min<size_t>(data.size() - offset, std::min<size_t>(25, pageSize - address));
@@ -468,12 +488,6 @@ void Crazyflie::readFlash(
   const bootloaderGetInfoResponse* response = getRequestResult<bootloaderGetInfoResponse>(0);
   uint16_t pageSize = response->pageSize;
   uint16_t flashStart = response->flashStart;
-  // std::cout << "pageSize: " << pageSize
-  //           << " nBuffPage: " << response->nBuffPage
-  //           << " nFlashPage: " << response->nFlashPage
-  //           << " flashStart: " << flashStart
-  //           << " version: " << (int)response->version
-  //           << std::endl;
 
   uint16_t numPages = ceil(size / (float)pageSize);
   if (numPages + flashStart >= response->nFlashPage) {
@@ -481,7 +495,14 @@ void Crazyflie::readFlash(
     sstr << "Requested size too large!";
     throw std::runtime_error(sstr.str());
   }
-  // std::cout << "numPages: " << numPages << std::endl;
+
+  std::stringstream sstr;
+  sstr << "pageSize: " << pageSize
+       << " nFlashPage: " << response->nFlashPage
+       << " flashStart: " << flashStart
+       << " version: " << (int)response->version
+       << " numPages: " << numPages;
+  m_logger.info(sstr.str());
 
   // read flash
   size_t offset = 0;

@@ -153,6 +153,9 @@ public:
   void reboot();
   // returns new address
   uint64_t rebootToBootloader();
+
+  void rebootFromBootloader();
+
   void sysoff();
   void alloff();
   void syson();
