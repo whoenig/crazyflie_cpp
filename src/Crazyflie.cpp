@@ -31,7 +31,8 @@ Logger EmptyLogger;
 
 Crazyflie::Crazyflie(
   const std::string& link_uri,
-  Logger& logger)
+  Logger& logger,
+  std::function<void(const char*)> consoleCb)
   : m_radio(nullptr)
   , m_transport(nullptr)
   , m_devId(0)
@@ -44,7 +45,7 @@ Crazyflie::Crazyflie(
   , m_paramValues()
   , m_emptyAckCallback(nullptr)
   , m_linkQualityCallback(nullptr)
-  , m_consoleCallback(nullptr)
+  , m_consoleCallback(consoleCb)
   , m_log_use_V2(false)
   , m_param_use_V2(false)
   , m_logger(logger)

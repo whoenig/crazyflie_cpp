@@ -108,7 +108,8 @@ public:
 public:
   Crazyflie(
     const std::string& link_uri,
-    Logger& logger = EmptyLogger);
+    Logger& logger = EmptyLogger,
+    std::function<void(const char*)> consoleCb = nullptr);
 
   int getProtocolVersion();
 
