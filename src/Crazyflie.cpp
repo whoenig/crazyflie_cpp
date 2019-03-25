@@ -148,6 +148,15 @@ std::string Crazyflie::getFirmwareVersion()
   return std::string(getRequestResult<crtpGetFirmwareVersionResponse>(0)->version);
 }
 
+std::string Crazyflie::getDeviceTypeName()
+{
+  crtpGetDeviceTypeNameRequest req;
+  startBatchRequest();
+  addRequest(req, 1);
+  handleRequests();
+  return std::string(getRequestResult<crtpGetDeviceTypeNameResponse>(0)->name);
+}
+
 void Crazyflie::logReset()
 {
   crtpLogResetRequest request;

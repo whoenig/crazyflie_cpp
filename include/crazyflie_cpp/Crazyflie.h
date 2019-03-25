@@ -114,6 +114,8 @@ public:
 
   std::string getFirmwareVersion();
 
+  std::string getDeviceTypeName();
+
   void logReset();
 
   void sendSetpoint(

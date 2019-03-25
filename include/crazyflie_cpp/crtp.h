@@ -1161,6 +1161,24 @@ struct crtpGetFirmwareVersionResponse
 } __attribute__((packed));
 CHECKSIZE_RESPONSE(crtpGetFirmwareVersionResponse)
 
+struct crtpGetDeviceTypeNameRequest
+{
+  crtpGetDeviceTypeNameRequest()
+    : header(0x0D, 1)
+    {
+    }
+
+    const crtp header;
+    const uint8_t cmd = 2;
+} __attribute__((packed));
+CHECKSIZE(crtpGetProtocolVersionRequest)
+
+struct crtpGetDeviceTypeNameResponse
+{
+  crtpGetDeviceTypeNameRequest request;
+  char name[30];
+} __attribute__((packed));
+CHECKSIZE_RESPONSE(crtpGetDeviceTypeNameResponse)
 
 // The crazyflie-nrf firmware sends empty packets with the signal strength, if nothing else is in the queue
 struct crtpPlatformRSSIAck
