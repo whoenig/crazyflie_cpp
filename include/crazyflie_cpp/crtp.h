@@ -837,6 +837,38 @@ struct crtpExternalPositionPacked
 }  __attribute__((packed));
 CHECKSIZE(crtpExternalPositionPacked)
 
+struct crtpExternalPoseUpdate
+{
+  crtpExternalPoseUpdate(
+    float x,
+    float y,
+    float z,
+    float qx,
+    float qy,
+    float qz,
+    float qw)
+    : header(0x06, 1)
+    , x(x)
+    , y(y)
+    , z(z)
+    , qx(qx)
+    , qy(qy)
+    , qz(qz)
+    , qw(qw)
+  {
+  }
+  const crtp header;
+  const uint8_t type = 8;
+  float x;
+  float y;
+  float z;
+  float qx;
+  float qy;
+  float qz;
+  float qw;
+}  __attribute__((packed));
+CHECKSIZE(crtpExternalPositionUpdate)
+
 struct crtpStopRequest
 {
   crtpStopRequest();

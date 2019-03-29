@@ -227,6 +227,14 @@ void Crazyflie::sendExternalPositionUpdate(
   sendPacket((const uint8_t*)&position, sizeof(position));
 }
 
+void Crazyflie::sendExternalPoseUpdate(
+  float x, float y, float z,
+  float qx, float qy, float qz, float qw)
+{
+  crtpExternalPoseUpdate pose(x, y, z, qx, qy, qz, qw);
+  sendPacket((const uint8_t*)&pose, sizeof(pose));
+}
+
 void Crazyflie::sendPing()
 {
   uint8_t ping = 0xFF;
