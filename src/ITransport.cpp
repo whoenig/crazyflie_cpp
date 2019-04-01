@@ -19,6 +19,12 @@ void ITransport::logPacket(
     for (size_t i = 0; i < length; ++i) {
         m_file << std::hex << (int)data[i] << " ";
     }
+    if (length > 0) {
+      uint8_t byte = data[0];
+      int port = ((byte >> 4) & 0xF);
+      int channel = ((byte >> 0) & 0x3);
+      m_file << " (port: " << port << " channel: " << channel << ")";
+    }
     m_file << std::endl;
 }
 
