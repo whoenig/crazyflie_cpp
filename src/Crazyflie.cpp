@@ -173,13 +173,13 @@ void Crazyflie::sendSetpoint(
   uint16_t thrust)
 {
   crtpSetpointRequest request(roll, pitch, yawrate, thrust);
-  sendPacket((const uint8_t*)&request, sizeof(request));
+  sendPacket(request);
 }
 
 void Crazyflie::sendStop()
 {
   crtpStopRequest request;
-  sendPacket((const uint8_t*)&request, sizeof(request));
+  sendPacket(request);
 }
 
 void Crazyflie::sendPositionSetpoint(
@@ -189,7 +189,7 @@ void Crazyflie::sendPositionSetpoint(
   float yaw)
 {
   crtpPositionSetpointRequest request(x, y, z, yaw);
-  sendPacket((const uint8_t*)&request, sizeof(request));
+  sendPacket(request);
 }
 
 void Crazyflie::sendHoverSetpoint(
@@ -199,7 +199,7 @@ void Crazyflie::sendHoverSetpoint(
   float zDistance)
 {
   crtpHoverSetpointRequest request(vx, vy, yawrate, zDistance);
-  sendPacket((const uint8_t*)&request, sizeof(request));
+  sendPacket(request);
 }
 
 void Crazyflie::sendFullStateSetpoint(
@@ -215,7 +215,7 @@ void Crazyflie::sendFullStateSetpoint(
     ax, ay, az,
     qx, qy, qz, qw,
     rollRate, pitchRate, yawRate);
-  sendPacket((const uint8_t*)&request, sizeof(request));
+  sendPacket(request);
 }
 
 void Crazyflie::sendExternalPositionUpdate(
@@ -224,7 +224,7 @@ void Crazyflie::sendExternalPositionUpdate(
   float z)
 {
   crtpExternalPositionUpdate position(x, y, z);
-  sendPacket((const uint8_t*)&position, sizeof(position));
+  sendPacket(position);
 }
 
 void Crazyflie::sendExternalPoseUpdate(
@@ -232,13 +232,13 @@ void Crazyflie::sendExternalPoseUpdate(
   float qx, float qy, float qz, float qw)
 {
   crtpExternalPoseUpdate pose(x, y, z, qx, qy, qz, qw);
-  sendPacket((const uint8_t*)&pose, sizeof(pose));
+  sendPacket(pose);
 }
 
 void Crazyflie::sendPing()
 {
-  uint8_t ping = 0xFF;
-  sendPacket(&ping, sizeof(ping));
+  crtpEmpty req;
+  sendPacket(req);
 }
 
 /**
@@ -251,7 +251,7 @@ void Crazyflie::transmitPackets()
     std::vector<crtpPacket_t>::iterator it;
     for (it = m_outgoing_packets.begin(); it != m_outgoing_packets.end(); it++)
     {
-      sendPacket(it->raw, it->size+1);
+      sendPacketInternal(it->raw, it->size+1);
     }
     m_outgoing_packets.clear();
   }
@@ -396,7 +396,7 @@ void Crazyflie::writeFlash(
 
       // auto start = std::chrono::system_clock::now();
       // while (true) {
-        sendPacketOrTimeout((uint8_t*)&req, 7 + requestedSize, false);
+        sendPacketOrTimeoutInternal((uint8_t*)&req, 7 + requestedSize, false);
       //   startBatchRequest();
       //   bootloaderReadBufferRequest req2(target, usedBuffers, address);
       //   addRequest(req2, 7);
@@ -441,7 +441,7 @@ void Crazyflie::writeFlash(
 
       // write flash
       bootloaderWriteFlashRequest req(target, 0, page - usedBuffers + 1, usedBuffers);
-      sendPacketOrTimeout((uint8_t*)&req, sizeof(req), false);
+      sendPacketOrTimeoutInternal((uint8_t*)&req, sizeof(req), false);
 
       auto start = std::chrono::system_clock::now();
 
@@ -449,7 +449,7 @@ void Crazyflie::writeFlash(
       while (true) {
         ITransport::Ack ack;
         bootloaderFlashStatusRequest statReq(target);
-        sendPacket((const uint8_t*)&statReq, sizeof(statReq), ack, false);
+        sendPacket(statReq, ack, false);
         if (   ack.ack
             && ack.size == 5
             && memcmp(&req, ack.data, 3) == 0) {
@@ -472,7 +472,7 @@ void Crazyflie::writeFlash(
         std::chrono::duration<double> elapsedSeconds = end-start;
         if (elapsedSeconds.count() > 0.5) {
           start = end;
-          sendPacketOrTimeout((uint8_t*)&req, sizeof(req), false);
+          sendPacketOrTimeout(req, false);
           ++tries;
           if (tries > 5) {
             throw std::runtime_error("timeout");
@@ -975,24 +975,24 @@ void Crazyflie::setParam(uint8_t id, const ParamValue& value)
   setRequestedParams();
 }
 
-bool Crazyflie::sendPacket(
+bool Crazyflie::sendPacketInternal(
   const uint8_t* data,
   uint32_t length,
   bool useSafeLink)
 {
   ITransport::Ack ack;
-  sendPacket(data, length, ack, useSafeLink);
+  sendPacketInternal(data, length, ack, useSafeLink);
   return ack.ack;
 }
 
- void Crazyflie::sendPacketOrTimeout(
+ void Crazyflie::sendPacketOrTimeoutInternal(
    const uint8_t* data,
    uint32_t length,
    bool useSafeLink,
    float timeout)
 {
   auto start = std::chrono::system_clock::now();
-  while (!sendPacket(data, length, useSafeLink)) {
+  while (!sendPacketInternal(data, length, useSafeLink)) {
     auto end = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsedSeconds = end-start;
     if (elapsedSeconds.count() > timeout) {
@@ -1001,7 +1001,7 @@ bool Crazyflie::sendPacket(
   }
 }
 
-void Crazyflie::sendPacket(
+void Crazyflie::sendPacketInternal(
   const uint8_t* data,
   uint32_t length,
   ITransport::Ack& ack,
@@ -1203,7 +1203,7 @@ void Crazyflie::startBatchRequest()
   m_batchRequests.clear();
 }
 
-void Crazyflie::addRequest(
+void Crazyflie::addRequestInternal(
   const uint8_t* data,
   size_t numBytes,
   size_t numBytesToMatch)
@@ -1233,7 +1233,7 @@ void Crazyflie::handleRequests(
       for (const auto& request : m_batchRequests) {
         if (!request.finished) {
           // std::cout << "sendReq" << std::endl;
-          sendPacket(request.request.data(), request.request.size(), ack, useSafeLink);
+          sendPacketInternal(request.request.data(), request.request.size(), ack, useSafeLink);
           handleBatchAck(ack, crtpMode);
 
           auto end = std::chrono::system_clock::now();
@@ -1248,8 +1248,8 @@ void Crazyflie::handleRequests(
       }
     } else {
       for (size_t i = 0; i < 10; ++i) {
-        uint8_t ping = 0xFF;
-        sendPacket(&ping, sizeof(ping), ack, useSafeLink);
+        crtpEmpty ping;
+        sendPacket(ping, ack, useSafeLink);
         handleBatchAck(ack, crtpMode);
         // if (ack.ack && crtpPlatformRSSIAck::match(ack)) {
         //   sendPing = false;
@@ -1312,25 +1312,25 @@ void Crazyflie::setGroupMask(uint8_t groupMask)
 void Crazyflie::takeoff(float height, float duration, uint8_t groupMask)
 {
   crtpCommanderHighLevelTakeoffRequest req(groupMask, height, duration);
-  sendPacketOrTimeout((uint8_t*)&req, sizeof(req));
+  sendPacketOrTimeout(req);
 }
 
 void Crazyflie::land(float height, float duration, uint8_t groupMask)
 {
   crtpCommanderHighLevelLandRequest req(groupMask, height, duration);
-  sendPacketOrTimeout((uint8_t*)&req, sizeof(req));
+  sendPacketOrTimeout(req);
 }
 
 void Crazyflie::stop(uint8_t groupMask)
 {
   crtpCommanderHighLevelStopRequest req(groupMask);
-  sendPacketOrTimeout((uint8_t*)&req, sizeof(req));
+  sendPacketOrTimeout(req);
 }
 
 void Crazyflie::goTo(float x, float y, float z, float yaw, float duration, bool relative, uint8_t groupMask)
 {
   crtpCommanderHighLevelGoToRequest req(groupMask, relative, x, y, z, yaw, duration);
-  sendPacketOrTimeout((uint8_t*)&req, sizeof(req));
+  sendPacketOrTimeout(req);
 }
 
 void Crazyflie::uploadTrajectory(
@@ -1349,7 +1349,7 @@ void Crazyflie::uploadTrajectory(
         size_t size = std::min<size_t>(remainingBytes, 24);
         memcpy(req.data, reinterpret_cast<const uint8_t*>(pieces.data()) + i * 24, size);
         remainingBytes -= size;
-        addRequest(reinterpret_cast<const uint8_t*>(&req), 6 + size, 5);
+        addRequestInternal(reinterpret_cast<const uint8_t*>(&req), 6 + size, 5);
       }
       // define trajectory
       crtpCommanderHighLevelDefineTrajectoryRequest req(trajectoryId);
@@ -1373,7 +1373,7 @@ void Crazyflie::startTrajectory(
   uint8_t groupMask)
 {
   crtpCommanderHighLevelStartTrajectoryRequest req(groupMask, relative, reversed, trajectoryId, timescale);
-  sendPacketOrTimeout((uint8_t*)&req, sizeof(req));
+  sendPacketOrTimeout(req);
 }
 
 ////////////////////////////////////////////////////////////////

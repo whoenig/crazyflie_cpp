@@ -309,7 +309,7 @@ public:
     uint8_t groupMask = 0);
 
 private:
-  void sendPacket(
+  void sendPacketInternal(
     const uint8_t* data,
     uint32_t length,
     ITransport::Ack& result,
@@ -321,11 +321,11 @@ private:
     ITransport::Ack& result,
     bool useSafeLink = ENABLE_SAFELINK)
   {
-    sendPacket(
+    sendPacketInternal(
       reinterpret_cast<const uint8_t*>(&request), sizeof(request), result, useSafeLink);
   }
 
-  bool sendPacket(
+  bool sendPacketInternal(
     const uint8_t* data,
     uint32_t length,
     bool useSafeLink = ENABLE_SAFELINK);
@@ -335,11 +335,11 @@ private:
     const R& request,
     bool useSafeLink = ENABLE_SAFELINK)
   {
-    sendPacket(
+    sendPacketInternal(
       reinterpret_cast<const uint8_t*>(&request), sizeof(request), useSafeLink);
   }
 
- void sendPacketOrTimeout(
+ void sendPacketOrTimeoutInternal(
    const uint8_t* data,
    uint32_t length,
    bool useSafeLink = ENABLE_SAFELINK,
@@ -350,7 +350,7 @@ private:
     const R& request,
     bool useSafeLink = ENABLE_SAFELINK)
   {
-    sendPacketOrTimeout(
+    sendPacketOrTimeoutInternal(
       reinterpret_cast<const uint8_t*>(&request), sizeof(request), useSafeLink);
   }
 
@@ -361,7 +361,7 @@ private:
 
   void startBatchRequest();
 
-  void addRequest(
+  void addRequestInternal(
     const uint8_t* data,
     size_t numBytes,
     size_t numBytesToMatch);
@@ -371,7 +371,7 @@ private:
     const R& request,
     size_t numBytesToMatch)
   {
-    addRequest(
+    addRequestInternal(
       reinterpret_cast<const uint8_t*>(&request), sizeof(request), numBytesToMatch);
   }
 
@@ -529,7 +529,7 @@ public:
       }
 
       m_cf->startBatchRequest();
-      m_cf->addRequest(reinterpret_cast<const uint8_t*>(&request), 3 + 3*i, 2);
+      m_cf->addRequestInternal(reinterpret_cast<const uint8_t*>(&request), 3 + 3*i, 2);
       m_cf->handleRequests();
       auto r = m_cf->getRequestResult<crtpLogControlResponse>(0);
       if (r->result != crtpLogControlResultOk
@@ -557,7 +557,7 @@ public:
       }
 
       m_cf->startBatchRequest();
-      m_cf->addRequest(reinterpret_cast<const uint8_t*>(&request), 3 + 2*i, 2);
+      m_cf->addRequestInternal(reinterpret_cast<const uint8_t*>(&request), 3 + 2*i, 2);
       m_cf->handleRequests();
       auto r = m_cf->getRequestResult<crtpLogControlResponse>(0);
       if (r->result != crtpLogControlResultOk
@@ -659,7 +659,7 @@ public:
         }
       }
       m_cf->startBatchRequest();
-      m_cf->addRequest(reinterpret_cast<const uint8_t*>(&request), 3 + 3*i, 2);
+      m_cf->addRequestInternal(reinterpret_cast<const uint8_t*>(&request), 3 + 3*i, 2);
       m_cf->handleRequests();
       auto r = m_cf->getRequestResult<crtpLogControlResponse>(0);
       if (r->result != crtpLogControlResultOk
@@ -697,7 +697,7 @@ public:
         }
       }
       m_cf->startBatchRequest();
-      m_cf->addRequest(reinterpret_cast<const uint8_t*>(&request), 3 + 2*i, 2);
+      m_cf->addRequestInternal(reinterpret_cast<const uint8_t*>(&request), 3 + 2*i, 2);
       m_cf->handleRequests();
       auto r = m_cf->getRequestResult<crtpLogControlResponse>(0);
       if (r->result != crtpLogControlResultOk
