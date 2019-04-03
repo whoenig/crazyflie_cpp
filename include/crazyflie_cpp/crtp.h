@@ -10,6 +10,8 @@ static int const CRTP_MAXSIZE = 31;
 static int const CRTP_MAXSIZE_RESPONSE = 32;
 #define CHECKSIZE_RESPONSE(s) static_assert(sizeof(s) <= CRTP_MAXSIZE_RESPONSE, #s " packet is too large");
 
+void quatdecompress(uint32_t comp, float q[4]);
+
 // Header
 struct crtp
 {
