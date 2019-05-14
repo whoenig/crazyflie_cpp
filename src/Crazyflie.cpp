@@ -127,7 +127,7 @@ Crazyflie::Crazyflie(
   m_curr_up = 0;
   m_curr_down = 0;
 
-  m_protocolVersion = getProtocolVersion();
+  m_protocolVersion = -1;
 
 }
 
@@ -563,6 +563,11 @@ void Crazyflie::requestLogToc(bool forceNoCache)
   uint16_t len;
   uint32_t crc;
 
+  // Lazily initialize protocol version
+  if (m_protocolVersion < 0) {
+    m_protocolVersion = getProtocolVersion();
+  }
+
   crtpLogGetInfoV2Request infoRequest;
   startBatchRequest();
   addRequest(infoRequest, 1);
@@ -667,6 +672,12 @@ void Crazyflie::requestParamToc(bool forceNoCache)
   m_param_use_V2 = true;
   uint16_t numParam;
   uint32_t crc;
+
+  // Lazily initialize protocol version
+  if (m_protocolVersion < 0) {
+    m_protocolVersion = getProtocolVersion();
+  }
+
   // Find the number of parameters in TOC
   crtpParamTocGetInfoV2Request infoRequest;
   startBatchRequest();
@@ -1247,7 +1258,8 @@ void Crazyflie::handleRequests(
         sendPing = true;
       }
     } else {
-      for (size_t i = 0; i < 10; ++i) {
+      size_t remainingRequests = m_batchRequests.size() - m_numRequestsFinished;
+      for (size_t i = 0; i < remainingRequests; ++i) {
         crtpEmpty ping;
         sendPacket(ping, ack, useSafeLink);
         handleBatchAck(ack, crtpMode);
