@@ -874,7 +874,25 @@ struct crtpExternalPoseUpdate
   float qz;
   float qw;
 }  __attribute__((packed));
-CHECKSIZE(crtpExternalPositionUpdate)
+CHECKSIZE(crtpExternalPoseUpdate)
+
+struct crtpExternalPosePacked
+{
+  crtpExternalPosePacked()
+    : header(0x06, 1)
+  {
+  }
+  const crtp header;
+  const uint8_t type = 9;
+  struct {
+    uint8_t id; // last 8 bit of the Crazyflie address
+    int16_t x; // mm
+    int16_t y; // mm
+    int16_t z; // mm
+    uint32_t quat; // compressed quaternion, see quatcompress.h
+  } __attribute__((packed)) poses[2];
+}  __attribute__((packed));
+CHECKSIZE(crtpExternalPosePacked)
 
 struct crtpStopRequest
 {
@@ -1124,41 +1142,6 @@ struct crtpCommanderHighLevelDefineTrajectoryRequest
     struct trajectoryDescription description;
 } __attribute__((packed));
 CHECKSIZE(crtpCommanderHighLevelDefineTrajectoryRequest)
-
-// Port 11 CrazySwarm Experimental
-
-typedef uint16_t fp16_t;
-typedef int16_t posFixed16_t;
-typedef struct posFixed24_t
-{
-  uint8_t low;
-  uint8_t middle;
-  uint8_t high;
-} posFixed24_t;
-
-struct data_mocap {
-  struct {
-    uint8_t id;
-    posFixed24_t x; // m
-    posFixed24_t y; // m
-    posFixed24_t z; // m
-    uint32_t quat; // compressed quat, see quatcompress.h
-  } __attribute__((packed)) pose[2];
-} __attribute__((packed));
-
-struct crtpPosExtBringup
-{
-  crtpPosExtBringup()
-    : header(11, 1)
-    {
-      data.pose[0].id = 0;
-      data.pose[1].id = 0;
-    }
-
-    const crtp header;
-    struct data_mocap data;
-} __attribute__((packed));
-CHECKSIZE(crtpPosExtBringup)
 
 // Port 13 (Platform)
 

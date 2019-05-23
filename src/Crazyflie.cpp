@@ -1540,32 +1540,30 @@ void CrazyflieBroadcaster::sendExternalPositions(
     requests[j].positions[i%4].y = data[i].y * 1000;
     requests[j].positions[i%4].z = data[i].z * 1000;
   }
+  // 1 header byte per packet; 7 bytes for each position
+  size_t numBytes = requests.size() + data.size() * 7;
 
   size_t remainingRequests = requests.size();
   size_t i = 0;
   while (remainingRequests > 0) {
-    if (remainingRequests >= 2) {
-      send2Packets(reinterpret_cast<const uint8_t*>(&requests[i]), 2 * sizeof(crtpExternalPositionPacked));
+    // the crazyradio requires the two packets to be the same size
+    // -> only send2packets if this is possible
+    if (   remainingRequests >= 2
+        && numBytes >= 2 * sizeof(crtpExternalPositionPacked)) {
+      size_t size = std::min(numBytes, 2 * sizeof(crtpExternalPositionPacked));
+      send2Packets(reinterpret_cast<const uint8_t*>(&requests[i]), size);
       remainingRequests -= 2;
+      numBytes -= size;
       i += 2;
     } else {
-      sendPacket(reinterpret_cast<const uint8_t*>(&requests[i]), sizeof(crtpExternalPositionPacked));
+      size_t size = std::min(numBytes, sizeof(crtpExternalPositionPacked));
+      sendPacket(reinterpret_cast<const uint8_t*>(&requests[i]), size);
       remainingRequests -= 1;
+      numBytes -= size;
       i += 1;
     }
   }
-}
-
-static float const POSITION_LIMIT = 8.0f; // meters
-static const uint32_t INT24_MAX = 8388607;
-static inline posFixed24_t position_float_to_fix24(float x)
-{
-  uint32_t val = (INT24_MAX / POSITION_LIMIT) * (x + POSITION_LIMIT);
-  posFixed24_t result;
-  result.low = (val >> 0) & 0xFF;
-  result.middle = (val >> 8) & 0xFF;
-  result.high = (val >> 16) & 0xFF;
-  return result;
+  // assert(numBytes == 0);
 }
 
 // assumes input quaternion is normalized. will fail if not.
@@ -1607,41 +1605,40 @@ void CrazyflieBroadcaster::sendExternalPoses(
     return;
   }
 
-#if 0
-  std::vector<crtpExternalPositionPacked> requests(ceil(data.size() / 4.0));
-  for (size_t i = 0; i < data.size(); ++i) {
-    size_t j = i / 4;
-    requests[j].positions[i%4].id = data[i].id;
-    requests[j].positions[i%4].x = data[i].x * 1000;
-    requests[j].positions[i%4].y = data[i].y * 1000;
-    requests[j].positions[i%4].z = data[i].z * 1000;
-  }
-# else
-  std::vector<crtpPosExtBringup> requests(ceil(data.size() / 2.0));
+  std::vector<crtpExternalPosePacked> requests(ceil(data.size() / 2.0));
   for (size_t i = 0; i < data.size(); ++i) {
     size_t j = i / 2;
-    requests[j].data.pose[i%2].id = data[i].id;
-    requests[j].data.pose[i%2].x = position_float_to_fix24(data[i].x);
-    requests[j].data.pose[i%2].y = position_float_to_fix24(data[i].y);
-    requests[j].data.pose[i%2].z = position_float_to_fix24(data[i].z);
+    requests[j].poses[i%2].id = data[i].id;
+    requests[j].poses[i%2].x = data[i].x * 1000;
+    requests[j].poses[i%2].y = data[i].y * 1000;
+    requests[j].poses[i%2].z = data[i].z * 1000;
     float q[4] = { data[i].qx, data[i].qy, data[i].qz, data[i].qw };
-    requests[j].data.pose[i%2].quat = quatcompress(q);
+    requests[j].poses[i%2].quat = quatcompress(q);
   }
-#endif
+  // 2 header byte per packet; 11 bytes for each position
+  size_t numBytes = requests.size() * 2 + data.size() * 11;
 
   size_t remainingRequests = requests.size();
   size_t i = 0;
   while (remainingRequests > 0) {
-    if (remainingRequests >= 2) {
-      send2Packets(reinterpret_cast<const uint8_t*>(&requests[i]), 2 * sizeof(crtpExternalPositionPacked));
+    // the crazyradio requires the two packets to be the same size
+    // -> only send2packets if this is possible
+    if (   remainingRequests >= 2
+        && numBytes >= 2 * sizeof(crtpExternalPosePacked)) {
+      size_t size = std::min(numBytes, 2 * sizeof(crtpExternalPosePacked));
+      send2Packets(reinterpret_cast<const uint8_t*>(&requests[i]), size);
       remainingRequests -= 2;
+      numBytes -= size;
       i += 2;
     } else {
-      sendPacket(reinterpret_cast<const uint8_t*>(&requests[i]), sizeof(crtpExternalPositionPacked));
+      size_t size = std::min(numBytes, sizeof(crtpExternalPosePacked));
+      sendPacket(reinterpret_cast<const uint8_t*>(&requests[i]), size);
       remainingRequests -= 1;
+      numBytes -= size;
       i += 1;
     }
   }
+  // assert(numBytes == 0);
 }
 
 // void CrazyflieBroadcaster::setParam(
