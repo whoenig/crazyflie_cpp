@@ -844,6 +844,28 @@ struct crtpExternalPositionPacked
 }  __attribute__((packed));
 CHECKSIZE(crtpExternalPositionPacked)
 
+struct crtpEmergencyStopRequest
+{
+  crtpEmergencyStopRequest()
+    : header(0x06, 1)
+  {
+  }
+  const crtp header;
+  const uint8_t type = 3;
+}  __attribute__((packed));
+CHECKSIZE(crtpEmergencyStopRequest)
+
+struct crtpEmergencyStopWatchdogRequest
+{
+  crtpEmergencyStopWatchdogRequest()
+    : header(0x06, 1)
+  {
+  }
+  const crtp header;
+  const uint8_t type = 4;
+}  __attribute__((packed));
+CHECKSIZE(crtpEmergencyStopWatchdogRequest)
+
 struct crtpExternalPoseUpdate
 {
   crtpExternalPoseUpdate(

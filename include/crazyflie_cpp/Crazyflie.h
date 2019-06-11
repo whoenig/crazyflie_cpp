@@ -140,6 +140,10 @@ public:
 
   void sendStop();
 
+  void sendEmergencyStop();
+
+  void sendEmergencyStopWatchdog();
+
   void sendPositionSetpoint(
     float x,
     float y,
@@ -869,6 +873,10 @@ public:
   // Crazyswarm experimental
   void sendExternalPoses(
     const std::vector<externalPose>& data);
+
+  void sendEmergencyStop();
+
+  void sendEmergencyStopWatchdog();
 
   // // Parameter support
   // template<class T>

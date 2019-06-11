@@ -182,6 +182,18 @@ void Crazyflie::sendStop()
   sendPacket(request);
 }
 
+void Crazyflie::sendEmergencyStop()
+{
+  crtpEmergencyStopRequest request;
+  sendPacket(request);
+}
+
+void Crazyflie::sendEmergencyStopWatchdog()
+{
+  crtpEmergencyStopWatchdogRequest request;
+  sendPacket(request);
+}
+
 void Crazyflie::sendPositionSetpoint(
   float x,
   float y,
@@ -1564,6 +1576,18 @@ void CrazyflieBroadcaster::sendExternalPositions(
     }
   }
   // assert(numBytes == 0);
+}
+
+void CrazyflieBroadcaster::sendEmergencyStop()
+{
+  crtpEmergencyStopRequest req;
+  sendPacket((uint8_t*)&req, sizeof(req));
+}
+
+void CrazyflieBroadcaster::sendEmergencyStopWatchdog()
+{
+  crtpEmergencyStopWatchdogRequest req;
+  sendPacket((uint8_t*)&req, sizeof(req));
 }
 
 // assumes input quaternion is normalized. will fail if not.
