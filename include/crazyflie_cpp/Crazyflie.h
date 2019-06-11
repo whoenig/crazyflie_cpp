@@ -140,9 +140,9 @@ public:
 
   void sendStop();
 
-  void sendEmergencyStop();
+  void emergencyStop();
 
-  void sendEmergencyStopWatchdog();
+  void emergencyStopWatchdog();
 
   void sendPositionSetpoint(
     float x,
@@ -874,9 +874,9 @@ public:
   void sendExternalPoses(
     const std::vector<externalPose>& data);
 
-  void sendEmergencyStop();
+  void emergencyStop();
 
-  void sendEmergencyStopWatchdog();
+  void emergencyStopWatchdog();
 
   // // Parameter support
   // template<class T>

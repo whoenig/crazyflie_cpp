@@ -182,16 +182,16 @@ void Crazyflie::sendStop()
   sendPacket(request);
 }
 
-void Crazyflie::sendEmergencyStop()
+void Crazyflie::emergencyStop()
 {
   crtpEmergencyStopRequest request;
-  sendPacket(request);
+  sendPacketOrTimeout(request);
 }
 
-void Crazyflie::sendEmergencyStopWatchdog()
+void Crazyflie::emergencyStopWatchdog()
 {
   crtpEmergencyStopWatchdogRequest request;
-  sendPacket(request);
+  sendPacketOrTimeout(request);
 }
 
 void Crazyflie::sendPositionSetpoint(
@@ -1578,13 +1578,13 @@ void CrazyflieBroadcaster::sendExternalPositions(
   // assert(numBytes == 0);
 }
 
-void CrazyflieBroadcaster::sendEmergencyStop()
+void CrazyflieBroadcaster::emergencyStop()
 {
   crtpEmergencyStopRequest req;
   sendPacket((uint8_t*)&req, sizeof(req));
 }
 
-void CrazyflieBroadcaster::sendEmergencyStopWatchdog()
+void CrazyflieBroadcaster::emergencyStopWatchdog()
 {
   crtpEmergencyStopWatchdogRequest req;
   sendPacket((uint8_t*)&req, sizeof(req));
