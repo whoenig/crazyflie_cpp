@@ -1367,7 +1367,7 @@ void Crazyflie::uploadTrajectory(
       startBatchRequest();
       // upload pieces
       size_t remainingBytes = sizeof(poly4d) * pieces.size();
-      size_t numRequests = ceil(remainingBytes / 24);
+      size_t numRequests = ceil(remainingBytes / 24.0f);
       for (size_t i = 0; i < numRequests; ++i) {
         crtpMemoryWriteRequest req(entry.id, pieceOffset * sizeof(poly4d) + i*24);
         size_t size = std::min<size_t>(remainingBytes, 24);
