@@ -1266,7 +1266,7 @@ void Crazyflie::handleRequests(
           }
         }
       }
-      if (m_radio) {
+      if (m_radio && !useSafeLink) {
         sendPing = true;
       }
     } else {
