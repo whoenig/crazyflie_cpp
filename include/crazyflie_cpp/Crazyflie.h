@@ -91,6 +91,10 @@ public:
     MemoryTypeLED12   = 0x10,
     MemoryTypeLOCO    = 0x11,
     MemoryTypeTRAJ    = 0x12,
+    MemoryTypeLOCO2   = 0x13,
+    MemoryTypeLH      = 0x14,
+    MemoryTypeTester  = 0x15,
+    MemoryTypeUSD     = 0x16, // Crazyswarm experimental
   };
 
   struct MemoryTocEntry {
@@ -311,6 +315,10 @@ public:
     bool reversed = false,
     bool relative = true,
     uint8_t groupMask = 0);
+
+  // Memory subsystem
+  void readUSDLogFile(
+    std::vector<uint8_t>& data);
 
 private:
   void sendPacketInternal(
