@@ -1247,15 +1247,26 @@ void Crazyflie::handleRequests(
   auto start = std::chrono::system_clock::now();
   ITransport::Ack ack;
   m_numRequestsFinished = 0;
+  m_numRequestsEnqueued = 0;
   bool sendPing = false;
+  const size_t queueSize = 16;
 
   float timeout = baseTime + timePerRequest * m_batchRequests.size();
 
-  while (true) {
-    if (!crtpMode || !sendPing) {
-      for (const auto& request : m_batchRequests) {
-        if (!request.finished) {
-          // std::cout << "sendReq" << std::endl;
+  if (useSafeLink) {
+
+    const size_t numRequests = m_batchRequests.size();
+    size_t remainingRequests = numRequests;
+    size_t requestIdx = 0;
+
+    while (remainingRequests > 0) {
+      remainingRequests = numRequests - m_numRequestsFinished;
+      // std::cout << "rR: " << remainingRequests << " " << m_numRequestsEnqueued << std::endl;
+      // enqueue up to queue size
+      while(m_numRequestsEnqueued < queueSize && requestIdx < numRequests) {
+        const auto& request = m_batchRequests[requestIdx++];
+
+        do {
           sendPacketInternal(request.request.data(), request.request.size(), ack, useSafeLink);
           handleBatchAck(ack, crtpMode);
 
@@ -1264,32 +1275,65 @@ void Crazyflie::handleRequests(
           if (elapsedSeconds.count() > timeout) {
             throw std::runtime_error("timeout");
           }
-        }
+          // std::cout << "send req " << requestIdx << std::endl;
+        } while (!ack.ack);
+        m_numRequestsEnqueued++;
       }
-      if (m_radio && !useSafeLink) {
-        sendPing = true;
-      }
-    } else {
-      size_t remainingRequests = m_batchRequests.size() - m_numRequestsFinished;
-      for (size_t i = 0; i < remainingRequests; ++i) {
+      // send ping's until at least one item in queue is done
+      while(m_numRequestsEnqueued == queueSize
+            || (m_numRequestsFinished < numRequests && requestIdx == numRequests)) {
         crtpEmpty ping;
         sendPacket(ping, ack, useSafeLink);
         handleBatchAck(ack, crtpMode);
-        // if (ack.ack && crtpPlatformRSSIAck::match(ack)) {
-        //   sendPing = false;
-        // }
 
         auto end = std::chrono::system_clock::now();
         std::chrono::duration<double> elapsedSeconds = end-start;
         if (elapsedSeconds.count() > timeout) {
           throw std::runtime_error("timeout");
         }
+        // std::cout << "send ping " << m_numRequestsEnqueued << std::endl;
       }
-
-      sendPing = false;
     }
-    if (m_numRequestsFinished == m_batchRequests.size()) {
-      break;
+  } else {
+    while (true) {
+      if (!crtpMode || !sendPing) {
+        for (const auto& request : m_batchRequests) {
+          if (!request.finished) {
+            // std::cout << "sendReq" << std::endl;
+            sendPacketInternal(request.request.data(), request.request.size(), ack, useSafeLink);
+            handleBatchAck(ack, crtpMode);
+            auto end = std::chrono::system_clock::now();
+            std::chrono::duration<double> elapsedSeconds = end-start;
+            if (elapsedSeconds.count() > timeout) {
+              throw std::runtime_error("timeout");
+            }
+          }
+        }
+        if (m_radio && !useSafeLink) {
+          sendPing = true;
+        }
+      } else {
+        size_t remainingRequests = m_batchRequests.size() - m_numRequestsFinished;
+        for (size_t i = 0; i < remainingRequests; ++i) {
+          crtpEmpty ping;
+          sendPacket(ping, ack, useSafeLink);
+          handleBatchAck(ack, crtpMode);
+          // if (ack.ack && crtpPlatformRSSIAck::match(ack)) {
+          //   sendPing = false;
+          // }
+
+          auto end = std::chrono::system_clock::now();
+          std::chrono::duration<double> elapsedSeconds = end-start;
+          if (elapsedSeconds.count() > timeout) {
+            throw std::runtime_error("timeout");
+          }
+        }
+
+        sendPing = false;
+      }
+      if (m_numRequestsFinished == m_batchRequests.size()) {
+        break;
+      }
     }
   }
 }
@@ -1307,6 +1351,7 @@ void Crazyflie::handleBatchAck(
           request.ack = ack;
           request.finished = true;
           ++m_numRequestsFinished;
+          --m_numRequestsEnqueued;
           // std::cout << "gotack" <<std::endl;
           return;
         }
@@ -1316,6 +1361,7 @@ void Crazyflie::handleBatchAck(
           request.ack = ack;
           request.finished = true;
           ++m_numRequestsFinished;
+          --m_numRequestsEnqueued;
           // std::cout << m_numRequestsFinished / (float)m_batchRequests.size() * 100.0 << " %" << std::endl;
           return;
         }
