@@ -537,7 +537,7 @@ public:
                  << " Ignoring " << pair.first << "." << pair.second << std::endl;
             throw std::runtime_error(sstr.str());
           } else {
-            logBlockItems.push_back({entry->type, entry->id});
+            logBlockItems.push_back({static_cast<uint8_t>(entry->type), entry->id});
           }
         }
         else {
