@@ -806,6 +806,20 @@ struct crtpLogCreateBlockV2Request
 } __attribute__((packed));
 CHECKSIZE(crtpLogCreateBlockV2Request)
 
+struct crtpLogAppendBlockV2Request
+{
+  crtpLogAppendBlockV2Request()
+  : header(5, 1)
+  , command(7)
+  {
+  }
+
+  const crtp header;
+  const uint8_t command;
+  uint8_t id;
+  logBlockItemV2 items[9];
+} __attribute__((packed));
+CHECKSIZE(crtpLogAppendBlockV2Request)
 
 // Port 0x06 (External Position Update)
 
