@@ -35,5 +35,11 @@ void ITransport::logAck(
     for (size_t i = 0; i < ack.size; ++i) {
         m_file << std::hex << (int)ack.data[i] << " ";
     }
+    if (ack.size > 0) {
+      uint8_t byte = ack.data[0];
+      int port = ((byte >> 4) & 0xF);
+      int channel = ((byte >> 0) & 0x3);
+      m_file << " (port: " << port << " channel: " << channel << ")";
+    }
     m_file << std::endl;
 }
