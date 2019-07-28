@@ -219,6 +219,33 @@ public:
     setParam(id, v);
   }
 
+  template<class T>
+  void setParamByName(const char* group, const char* name, const T& value) {
+    crtpParamSetByNameRequest<T> request(group, name, value);
+    // sendPacketOrTimeoutInternal(reinterpret_cast<const uint8_t*>(&request), request.size());
+    startBatchRequest();
+    addRequestInternal(
+      reinterpret_cast<const uint8_t*>(&request), request.size(), request.responseSize() - 1);
+    handleRequests();
+    auto response = getRequestResult<crtpParamSetByNameResponse<T> >(0);
+
+    uint8_t error = response->error(request.responseSize());
+    if (error != 0) {
+      std::stringstream sstr;
+      sstr << "Couldn't set parameter " << group << "." << name << "!";
+      if (error == ENOENT) {
+        sstr << "No such variable." << std::endl;
+      } else if (error == EINVAL) {
+        sstr << "Wrong type." << std::endl;
+      } else if (error == EACCES) {
+        sstr << "Variable is readonly." << std::endl;
+      } else {
+        sstr << " Error: " << (int)error << std::endl;
+      }
+      throw std::runtime_error(sstr.str());
+    }
+  }
+
   void startSetParamRequest();
 
   template<class T>
