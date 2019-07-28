@@ -227,7 +227,7 @@ public:
     addRequestInternal(
       reinterpret_cast<const uint8_t*>(&request), request.size(), request.responseSize() - 1);
     handleRequests();
-    auto response = getRequestResult<crtpParamSetByNameResponse<T> >(0);
+    auto response = getRequestResult<crtpParamSetByNameResponse>(0);
 
     uint8_t error = response->error(request.responseSize());
     if (error != 0) {
@@ -934,7 +934,6 @@ public:
     float qw;
   };
 
-  // Crazyswarm experimental
   void sendExternalPoses(
     const std::vector<externalPose>& data);
 
@@ -942,18 +941,15 @@ public:
 
   void emergencyStopWatchdog();
 
-  // // Parameter support
-  // template<class T>
-  // void setParam(
-  //   uint8_t group,
-  //   uint8_t id,
-  //   Crazyflie::ParamType type,
-  //   const T& value)
-  // {
-  //   Crazyflie::ParamValue v;
-  //   memcpy(&v, &value, sizeof(value));
-  //   setParam(group, id, type, v);
-  // }
+  template<class T>
+  void setParam(
+    const char* group,
+    const char* name,
+    const T& value)
+  {
+    crtpParamSetByNameRequest<T> request(group, name, value);
+    sendPacket(reinterpret_cast<const uint8_t*>(&request), request.size());
+  }
 
 protected:
   void sendPacket(

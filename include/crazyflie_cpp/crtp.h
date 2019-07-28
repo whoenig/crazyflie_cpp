@@ -390,9 +390,13 @@ private:
 } __attribute__((packed));
 CHECKSIZE_WITH_STATE(crtpParamSetByNameRequest<float>, 2) // largest kind of param
 
-template <class T>
 struct crtpParamSetByNameResponse
 {
+  static bool match(const Crazyradio::Ack& response) {
+    return response.size > 2 &&
+           (crtp(response.data[0]) == crtp(2, 3));
+  }
+
   uint8_t data[32];
 
   uint8_t error(uint8_t responseSize) const {
@@ -400,7 +404,7 @@ struct crtpParamSetByNameResponse
   }
 
 } __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpParamSetByNameResponse<float>) // largest kind of param
+CHECKSIZE_RESPONSE(crtpParamSetByNameResponse) // largest kind of param
 
 
 // Port 3 (Commander)
