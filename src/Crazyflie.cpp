@@ -877,7 +877,7 @@ void Crazyflie::startSetParamRequest()
   startBatchRequest();
 }
 
-void Crazyflie::addSetParam(uint8_t id, const ParamValue& value)
+void Crazyflie::addSetParam(uint16_t id, const ParamValue& value)
 {
   bool found = false;
   for (auto&& entry : m_paramTocEntries) {
@@ -991,7 +991,7 @@ void Crazyflie::setRequestedParams()
   handleRequests();
 }
 
-void Crazyflie::setParam(uint8_t id, const ParamValue& value)
+void Crazyflie::setParam(uint16_t id, const ParamValue& value)
 {
   startBatchRequest();
   addSetParam(id, value);

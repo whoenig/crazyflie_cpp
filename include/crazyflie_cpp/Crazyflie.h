@@ -75,7 +75,7 @@ public:
   };
 
   struct LogTocEntry {
-    uint8_t id;
+    uint16_t id;
     LogType type;
     std::string group;
     std::string name;
@@ -213,7 +213,7 @@ public:
   }
 
   template<class T>
-  void setParam(uint8_t id, const T& value) {
+  void setParam(uint16_t id, const T& value) {
     ParamValue v;
     memcpy(&v, &value, sizeof(value));
     setParam(id, v);
@@ -249,7 +249,7 @@ public:
   void startSetParamRequest();
 
   template<class T>
-  void addSetParam(uint8_t id, const T& value) {
+  void addSetParam(uint16_t id, const T& value) {
     ParamValue v;
     memcpy(&v, &value, sizeof(value));
     addSetParam(id, v);
@@ -259,7 +259,7 @@ public:
 
 
   template<class T>
-  T getParam(uint8_t id) const {
+  T getParam(uint16_t id) const {
     ParamValue v = getParam(id);
     return *(reinterpret_cast<T*>(&v));
   }
@@ -480,11 +480,11 @@ private:
   bool unregisterLogBlock(
     uint8_t id);
 
-  void setParam(uint8_t id, const ParamValue& value);
-  void addSetParam(uint8_t id, const ParamValue& value);
+  void setParam(uint16_t id, const ParamValue& value);
+  void addSetParam(uint16_t id, const ParamValue& value);
 
 
-  const ParamValue& getParam(uint8_t id) const {
+  const ParamValue& getParam(uint16_t id) const {
     return m_paramValues.at(id);
   }
 
@@ -501,7 +501,7 @@ private:
   std::map<uint8_t, std::function<void(crtpLogDataResponse*, uint8_t)> > m_logBlockCb;
 
   std::vector<ParamTocEntry> m_paramTocEntries;
-  std::map<uint8_t, ParamValue> m_paramValues;
+  std::map<uint16_t, ParamValue> m_paramValues;
 
   std::vector<MemoryTocEntry> m_memoryTocEntries;
 
