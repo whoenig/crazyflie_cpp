@@ -1265,7 +1265,10 @@ void Crazyflie::handleRequests(
 
   float timeout = baseTime + timePerRequest * m_batchRequests.size();
 
-  if (useSafeLink) {
+  // Workaround for https://github.com/USC-ACTLab/crazyswarm/issues/172
+  // Disable safelink for now, until packets are really not dropped
+  // anymore.
+  if (false /*useSafeLink*/) {
 
     const size_t numRequests = m_batchRequests.size();
     size_t remainingRequests = numRequests;
