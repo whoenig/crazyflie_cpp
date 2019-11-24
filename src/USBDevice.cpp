@@ -137,7 +137,7 @@ void USBDevice::open(
     else
     {
         std::stringstream sstr;
-        sstr << "No matching USB Device with devid = " << devid << " found!";
+        sstr << "No matching USB Device with devid = " << devid << " found! Do you have a Crazyradio dongle connected?";
         throw std::runtime_error(sstr.str());
     }
 }
