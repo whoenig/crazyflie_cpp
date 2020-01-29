@@ -230,6 +230,14 @@ void Crazyflie::sendFullStateSetpoint(
   sendPacket(request);
 }
 
+void Crazyflie::sendVelocityWorldSetpoint(
+        float x, float y, float z, float yawRate)
+{
+  crtpVelocityWorldSetpointRequest request(
+    x, y, z, yawRate);
+  sendPacket(request);
+}
+
 void Crazyflie::sendExternalPositionUpdate(
   float x,
   float y,
