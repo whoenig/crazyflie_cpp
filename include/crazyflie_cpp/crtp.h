@@ -1062,6 +1062,22 @@ struct crtpFullStateSetpointRequest
 } __attribute__((packed));
 CHECKSIZE(crtpFullStateSetpointRequest)
 
+struct crtpVelocityWorldSetpointRequest
+{
+  crtpVelocityWorldSetpointRequest(
+      float x, float y, float z, float yawRate)
+      : header(0X07, 0), type(1), x(x), y(y), z(z), yawRate(yawRate)
+  {
+  }
+  const crtp header;
+  uint8_t type;
+  float x;
+  float y;
+  float z;
+  float yawRate;
+}__attribute__((packed));
+CHECKSIZE(crtpVelocityWorldSetpointRequest);
+
 // Port 0x08 (High-level Setpoints)
 
 struct crtpCommanderHighLevelSetGroupMaskRequest
