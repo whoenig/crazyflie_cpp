@@ -238,6 +238,12 @@ void Crazyflie::sendVelocityWorldSetpoint(
   sendPacket(request);
 }
 
+void Crazyflie::notifySetpointsStop(uint32_t remainValidMillisecs)
+{
+  crtpNotifySetpointsStopRequest request(remainValidMillisecs);
+  sendPacketOrTimeout(request);
+}
+
 void Crazyflie::sendExternalPositionUpdate(
   float x,
   float y,
