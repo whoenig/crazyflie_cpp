@@ -1078,6 +1078,18 @@ struct crtpVelocityWorldSetpointRequest
 }__attribute__((packed));
 CHECKSIZE(crtpVelocityWorldSetpointRequest);
 
+struct crtpNotifySetpointsStopRequest
+{
+  crtpNotifySetpointsStopRequest(uint32_t remainValidMillisecs)
+    : header(0x07, 1), type(0), remainValidMillisecs(remainValidMillisecs)
+  {
+  }
+  const crtp header;
+  uint8_t type;
+  uint32_t remainValidMillisecs;
+}__attribute__((packed));
+CHECKSIZE(crtpNotifySetpointsStopRequest);
+
 // Port 0x08 (High-level Setpoints)
 
 struct crtpCommanderHighLevelSetGroupMaskRequest
