@@ -12,7 +12,7 @@
 #include <map>
 #include <chrono>
 
-#define ENABLE_SAFELINK 1
+#define ENABLE_SAFELINK 0
 
 class Logger
 {
