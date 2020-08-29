@@ -1505,6 +1505,32 @@ void Crazyflie::readUSDLogFile(
   throw std::runtime_error("Could not find MemoryTypeUSD!");
 }
 
+void Crazyflie::readMemory(
+  uint16_t id,
+  std::vector<uint8_t>& data)
+{
+  const auto& entry = m_memoryTocEntries.at(id);
+  startBatchRequest();
+  size_t remainingBytes = entry.size;
+  size_t numRequests = ceil(remainingBytes / 24.0f);
+  for (size_t i = 0; i < numRequests; ++i) {
+    size_t size = std::min<size_t>(remainingBytes, 24);
+    crtpMemoryReadRequest req(entry.id, i*24, size);
+    remainingBytes -= size;
+    addRequest(req, 5);
+  }
+  handleRequests();
+  // put result in data vector
+  data.resize(entry.size);
+  remainingBytes = entry.size;
+  for (size_t i = 0; i < numRequests; ++i) {
+    size_t size = std::min<size_t>(remainingBytes, 24);
+    const crtpMemoryReadResponse* response = getRequestResult<crtpMemoryReadResponse>(i);
+    memcpy(&data[i*24], response->data, size);
+    remainingBytes -= size;
+  }
+}
+
 ////////////////////////////////////////////////////////////////
 
 CrazyflieBroadcaster::CrazyflieBroadcaster(

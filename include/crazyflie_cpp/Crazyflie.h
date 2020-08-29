@@ -12,7 +12,7 @@
 #include <map>
 #include <chrono>
 
-#define ENABLE_SAFELINK 0
+#define ENABLE_SAFELINK 1
 
 class Logger
 {
@@ -351,6 +351,10 @@ public:
 
   // Memory subsystem
   void readUSDLogFile(
+    std::vector<uint8_t>& data);
+
+  void readMemory(
+    uint16_t id,
     std::vector<uint8_t>& data);
 
 private:

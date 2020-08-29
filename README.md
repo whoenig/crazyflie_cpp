@@ -10,6 +10,6 @@ This is used in crazyflie_ros, and crazyflie_tools, but can also be used for oth
 ```
 mkdir build
 cd build
-cmake ..
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 ```
