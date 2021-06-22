@@ -118,6 +118,9 @@ public:
     Logger& logger = EmptyLogger,
     std::function<void(const char*)> consoleCb = nullptr);
 
+  static std::vector<std::string> scan(
+    uint64_t address = 0xE7E7E7E7E7);
+
 #if 0
   int getProtocolVersion();
 

@@ -36,6 +36,12 @@ Crazyflie::Crazyflie(
   // m_protocolVersion = -1;
 }
 
+std::vector<std::string> Crazyflie::scan(
+    uint64_t address)
+{
+  return bitcraze::crazyflieLinkCpp::Connection::scan(address);
+}
+
 #if 0
 int Crazyflie::getProtocolVersion()
 {
