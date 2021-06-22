@@ -6,25 +6,12 @@
 #include "crtpBootloader.h"
 #include "crtpNRF51.h"
 
-#include "Crazyradio.h"
-#include "CrazyflieUSB.h"
-
 #include <fstream>
 #include <cstring>
 #include <stdexcept>
 #include <thread>
 #include <cmath>
 #include <inttypes.h>
-
-const static int MAX_RADIOS = 16;
-const static int MAX_USB = 4;
-const static bool LOG_COMMUNICATION = 0;
-
-Crazyradio* g_crazyradios[MAX_RADIOS];
-std::mutex g_radioMutex[MAX_RADIOS];
-
-CrazyflieUSB* g_crazyflieUSB[MAX_USB];
-std::mutex g_crazyflieusbMutex[MAX_USB];
 
 Logger EmptyLogger;
 
@@ -33,104 +20,23 @@ Crazyflie::Crazyflie(
   const std::string& link_uri,
   Logger& logger,
   std::function<void(const char*)> consoleCb)
-  : m_radio(nullptr)
-  , m_transport(nullptr)
-  , m_devId(0)
-  , m_channel(0)
-  , m_address(0)
-  , m_datarate(Crazyradio::Datarate_250KPS)
-  , m_logTocEntries()
-  , m_logBlockCb()
-  , m_paramTocEntries()
-  , m_paramValues()
-  , m_emptyAckCallback(nullptr)
-  , m_linkQualityCallback(nullptr)
-  , m_consoleCallback(consoleCb)
-  , m_log_use_V2(false)
-  , m_param_use_V2(false)
+  // : m_logTocEntries()
+  // , m_logBlockCb()
+  // , m_paramTocEntries()
+  // , m_paramValues()
+  // , m_emptyAckCallback(nullptr)
+  // , m_linkQualityCallback(nullptr)
+  : m_consoleCallback(consoleCb)
+  // , m_log_use_V2(false)
+  // , m_param_use_V2(false)
   , m_logger(logger)
+  , m_connection(link_uri)
 {
-  int datarate;
-  int channel;
-  char datarateType;
-  bool success = false;
 
-  success = std::sscanf(link_uri.c_str(), "radio://%d/%d/%d%c/%" SCNx64,
-     &m_devId, &channel, &datarate,
-     &datarateType, &m_address) == 5;
-  if (!success) {
-    success = std::sscanf(link_uri.c_str(), "radio://%d/%d/%d%c",
-       &m_devId, &channel, &datarate,
-       &datarateType) == 4;
-    m_address = 0xE7E7E7E7E7;
-  }
-
-  if (success)
-  {
-    m_channel = channel;
-    if (datarate == 250 && datarateType == 'K') {
-      m_datarate = Crazyradio::Datarate_250KPS;
-    }
-    else if (datarate == 1 && datarateType == 'M') {
-      m_datarate = Crazyradio::Datarate_1MPS;
-    }
-    else if (datarate == 2 && datarateType == 'M') {
-      m_datarate = Crazyradio::Datarate_2MPS;
-    }
-
-    if (m_devId >= MAX_RADIOS) {
-      throw std::runtime_error("This version does not support that many radios. Adjust MAX_RADIOS and recompile!");
-    }
-
-    {
-      std::unique_lock<std::mutex> mlock(g_radioMutex[m_devId]);
-      if (!g_crazyradios[m_devId]) {
-        g_crazyradios[m_devId] = new Crazyradio(m_devId);
-        g_crazyradios[m_devId]->enableLogging(LOG_COMMUNICATION);
-        // g_crazyradios[m_devId]->setAckEnable(false);
-        g_crazyradios[m_devId]->setAckEnable(true);
-        g_crazyradios[m_devId]->setArc(0);
-      }
-    }
-
-    m_radio = g_crazyradios[m_devId];
-  }
-  else {
-    success = std::sscanf(link_uri.c_str(), "usb://%d",
-       &m_devId) == 1;
-
-    if (m_devId >= MAX_USB) {
-      throw std::runtime_error("This version does not support that many CFs over USB. Adjust MAX_USB and recompile!");
-    }
-
-    {
-      std::unique_lock<std::mutex> mlock(g_crazyflieusbMutex[m_devId]);
-      if (!g_crazyflieUSB[m_devId]) {
-        g_crazyflieUSB[m_devId] = new CrazyflieUSB(m_devId);
-        g_crazyflieUSB[m_devId]->enableLogging(LOG_COMMUNICATION);
-      }
-    }
-
-    m_transport = g_crazyflieUSB[m_devId];
-  }
-
-  if (!success) {
-    throw std::runtime_error("Uri is not valid!");
-  }
-
-  // enable safelink
-  if (m_radio) {
-    crtpNrf51SetSafelinkRequest request(ENABLE_SAFELINK);
-    sendPacketOrTimeout(request, /*useSafeLink*/false);
-  }
-
-  m_curr_up = 0;
-  m_curr_down = 0;
-
-  m_protocolVersion = -1;
-
+  // m_protocolVersion = -1;
 }
 
+#if 0
 int Crazyflie::getProtocolVersion()
 {
   crtpGetProtocolVersionRequest req;
@@ -1822,3 +1728,4 @@ void CrazyflieBroadcaster::sendExternalPoses(
 //   }
 //   // TODO: technically we should update the internal copy of the value of each CF object
 // }
+#endif

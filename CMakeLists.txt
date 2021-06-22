@@ -1,28 +1,25 @@
 cmake_minimum_required(VERSION 3.5)
-project(crazyflie_cpp VERSION 0.0.1)
+project(crazyflie_cpp VERSION 1.0)
 
-find_library(USB_LIB usb-1.0)
-
-# Enable C++11 and warnings
-set(CMAKE_CXX_STANDARD 11)
+# Enable C++14 and warnings
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_compile_options(-Wall -Wextra -Werror)
 
+add_subdirectory(crazyflie-link-cpp)
+
 add_library(crazyflie_cpp
   src/Crazyflie.cpp
-  src/CrazyflieUSB.cpp
-  src/Crazyradio.cpp
   src/crtp.cpp
-  src/USBDevice.cpp
-  src/ITransport.cpp
 )
 
 target_include_directories(crazyflie_cpp
   PUBLIC
     $<INSTALL_INTERFACE:include/crazyflie_cpp>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/crazyflie_cpp>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/crazyflie-link-cpp/include>
 )
 
 target_link_libraries(crazyflie_cpp

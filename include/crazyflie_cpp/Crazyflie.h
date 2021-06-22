@@ -5,14 +5,14 @@
 #include <functional>
 #include <math.h>
 
-#include "Crazyradio.h"
 #include "crtp.h"
 #include <list>
 #include <set>
 #include <map>
 #include <chrono>
 
-#define ENABLE_SAFELINK 0
+#include <crazyflieLinkCpp/Connection.h>
+
 
 class Logger
 {
@@ -30,6 +30,7 @@ extern Logger EmptyLogger;
 class Crazyflie
 {
 public:
+#if 0
   enum ParamType {
     ParamTypeUint8  = 0x00 | (0x00<<2) | (0x01<<3),
     ParamTypeInt8   = 0x00 | (0x00<<2) | (0x00<<3),
@@ -109,6 +110,7 @@ public:
     float p[4][8];
     float duration;
   } __attribute__((packed));
+#endif
 
 public:
   Crazyflie(
@@ -116,6 +118,7 @@ public:
     Logger& logger = EmptyLogger,
     std::function<void(const char*)> consoleCb = nullptr);
 
+#if 0
   int getProtocolVersion();
 
   std::string getFirmwareVersion();
@@ -512,7 +515,9 @@ private:
 
   std::function<void(const crtpPlatformRSSIAck*)> m_emptyAckCallback;
   std::function<void(float)> m_linkQualityCallback;
+#endif
   std::function<void(const char*)> m_consoleCallback;
+#if 0
   std::function<void(const ITransport::Ack&)> m_genericPacketCallback;
 
   template<typename T>
@@ -538,11 +543,14 @@ private:
   bool m_param_use_V2;
 
   int m_protocolVersion;
-
+#endif
   // logging
   Logger& m_logger;
+
+  bitcraze::crazyflieLinkCpp::Connection m_connection;
 };
 
+#if 0
 template<class T>
 class LogBlock
 {
@@ -979,3 +987,4 @@ private:
   uint64_t m_address;
   Crazyradio::Datarate m_datarate;
 };
+#endif

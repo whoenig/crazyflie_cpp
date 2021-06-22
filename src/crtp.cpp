@@ -63,7 +63,7 @@ void quatdecompress(uint32_t comp, float q[4])
 	}
 	q[i_largest] = sqrtf(1.0f - sum_squares);
 }
-
+#if 0
 crtpFullStateSetpointRequest::crtpFullStateSetpointRequest(
   float x, float y, float z,
   float vx, float vy, float vz,
@@ -215,3 +215,4 @@ crtpParamSetByNameRequest<float>::crtpParamSetByNameRequest(
 	: crtpParamSetByNameRequest(group, name, ParamTypeFloat, &value, sizeof(float))
 {
 }
+#endif

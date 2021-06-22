@@ -1,7 +1,8 @@
 #pragma once
 
-#include "Crazyradio.h"
 #include <cstdint>
+#if 0
+#include <crazyflieLinkCpp/Packet.hpp>
 
 static int const CRTP_MAX_DATA_SIZE = 30;
 static int const CRTP_MAXSIZE = 31;
@@ -1342,3 +1343,4 @@ struct crtpPlatformRSSIAck
     uint8_t rssi;
 };
 CHECKSIZE_RESPONSE(crtpPlatformRSSIAck)
+#endif
