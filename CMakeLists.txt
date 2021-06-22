@@ -24,47 +24,47 @@ target_include_directories(crazyflie_cpp
 
 target_link_libraries(crazyflie_cpp
   PRIVATE
-    ${USB_LIB}
+    crazyflieLinkCpp
 )
 
-include(CMakePackageConfigHelpers)
-write_basic_package_version_file(
-  crazyflie_cpp-config-version.cmake
-  VERSION ${CRAZYFLIE_CPP_VERSION}
-  COMPATIBILITY AnyNewerVersion
-)
+# include(CMakePackageConfigHelpers)
+# write_basic_package_version_file(
+#   crazyflie_cpp-config-version.cmake
+#   VERSION ${CRAZYFLIE_CPP_VERSION}
+#   COMPATIBILITY AnyNewerVersion
+# )
 
-install(
-  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/crazyflie_cpp
-  DESTINATION include
-)
+# install(
+#   DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/crazyflie_cpp
+#   DESTINATION include
+# )
 
-install(
-  TARGETS crazyflie_cpp
-  EXPORT crazyflie_cpp-targets
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
-)
+# install(
+#   TARGETS crazyflie_cpp
+#   EXPORT crazyflie_cpp-targets
+#   LIBRARY DESTINATION lib
+#   ARCHIVE DESTINATION lib
+#   RUNTIME DESTINATION bin
+#   INCLUDES DESTINATION include
+# )
 
-install(EXPORT crazyflie_cpp-targets
-  FILE crazyflie_cpp-targets.cmake
-  NAMESPACE crazyflie_cpp::
-  DESTINATION lib/cmake/crazyflie_cpp
-)
+# install(EXPORT crazyflie_cpp-targets
+#   FILE crazyflie_cpp-targets.cmake
+#   NAMESPACE crazyflie_cpp::
+#   DESTINATION lib/cmake/crazyflie_cpp
+# )
 
-install(
-  FILES
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/crazyflie_cpp-config.cmake"
-  DESTINATION
-    lib/cmake/crazyflie_cpp
-)
+# install(
+#   FILES
+#     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/crazyflie_cpp-config.cmake"
+#   DESTINATION
+#     lib/cmake/crazyflie_cpp
+# )
 
-# Install ROS package information
-install(
-  FILES
-    package.xml
-  DESTINATION
-    share/crazyflie_cpp
-)
+# # Install ROS package information
+# install(
+#   FILES
+#     package.xml
+#   DESTINATION
+#     share/crazyflie_cpp
+# )
