@@ -8,6 +8,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_compile_options(-Wall -Wextra -Werror)
 
+option(BUILD_PYTHON_BINDINGS "" OFF)
+option(BUILD_CPP_EXAMPLES "" OFF)
 add_subdirectory(crazyflie-link-cpp)
 
 add_library(crazyflie_cpp
