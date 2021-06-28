@@ -52,10 +52,6 @@ typedef struct {
   };
 } crtpPacket_t;
 
-struct crtpEmpty
-{
-  const uint8_t cmd = 0xFF;
-};
 
 // Port 0 (Console)
 struct crtpConsoleResponse

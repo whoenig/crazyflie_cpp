@@ -174,9 +174,9 @@ public:
   void sendExternalPoseUpdate(
     float x, float y, float z,
     float qx, float qy, float qz, float qw);
-
+#endif
   void sendPing();
-
+#if 0
   void reboot();
   // returns new address
   uint64_t rebootToBootloader();

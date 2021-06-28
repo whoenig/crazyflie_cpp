@@ -172,13 +172,19 @@ void Crazyflie::sendExternalPoseUpdate(
   crtpExternalPoseUpdate pose(x, y, z, qx, qy, qz, qw);
   sendPacket(pose);
 }
-
+#endif
 void Crazyflie::sendPing()
 {
-  crtpEmpty req;
-  sendPacket(req);
+  auto p = m_connection.recv(0);
+  if (p.port() == 0 && p.channel() == 0)
+  {
+    if (m_consoleCallback) {
+      std::string str((const char *)p.payload(), (size_t)p.payloadSize());
+      m_consoleCallback(str.c_str());
+    }
+  }
 }
-
+#if 0
 /**
  * Transmits any outgoing packets to the crazyflie.
  */
