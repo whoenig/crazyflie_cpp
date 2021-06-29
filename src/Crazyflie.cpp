@@ -42,34 +42,35 @@ std::vector<std::string> Crazyflie::scan(
   return bitcraze::crazyflieLinkCpp::Connection::scan(address);
 }
 
-#if 0
+
 int Crazyflie::getProtocolVersion()
 {
   crtpGetProtocolVersionRequest req;
-  startBatchRequest();
-  addRequest(req, 1);
-  handleRequests();
-  return getRequestResult<crtpGetProtocolVersionResponse>(0)->version;
+  m_connection.send(req);
+  using res = crtpGetProtocolVersionResponse;
+  auto p = waitForResponse(&res::valid);
+  return res::version(p);
 }
 
 std::string Crazyflie::getFirmwareVersion()
 {
   crtpGetFirmwareVersionRequest req;
-  startBatchRequest();
-  addRequest(req, 1);
-  handleRequests();
-  return std::string(getRequestResult<crtpGetFirmwareVersionResponse>(0)->version);
+  m_connection.send(req);
+  using res = crtpGetFirmwareVersionResponse;
+  auto p = waitForResponse(&res::valid);
+  return res::version(p);
 }
 
 std::string Crazyflie::getDeviceTypeName()
 {
   crtpGetDeviceTypeNameRequest req;
-  startBatchRequest();
-  addRequest(req, 1);
-  handleRequests();
-  return std::string(getRequestResult<crtpGetDeviceTypeNameResponse>(0)->name);
+  m_connection.send(req);
+  using res = crtpGetDeviceTypeNameResponse;
+  auto p = waitForResponse(&res::valid);
+  return res::name(p);
 }
 
+#if 0
 void Crazyflie::logReset()
 {
   crtpLogResetRequest request;
@@ -175,14 +176,7 @@ void Crazyflie::sendExternalPoseUpdate(
 #endif
 void Crazyflie::sendPing()
 {
-  auto p = m_connection.recv(0);
-  if (p.port() == 0 && p.channel() == 0)
-  {
-    if (m_consoleCallback) {
-      std::string str((const char *)p.payload(), (size_t)p.payloadSize());
-      m_consoleCallback(str.c_str());
-    }
-  }
+  waitForResponse([](const auto&) {return true;});
 }
 #if 0
 /**
@@ -929,7 +923,23 @@ void Crazyflie::setParam(uint16_t id, const ParamValue& value)
   addSetParam(id, value);
   setRequestedParams();
 }
-
+#endif
+bitcraze::crazyflieLinkCpp::Packet Crazyflie::waitForResponse(
+    std::function<bool(const bitcraze::crazyflieLinkCpp::Packet &)> condition)
+{
+  while (true) {
+    auto p = m_connection.recv(0);
+    if (crtpConsoleResponse::valid(p)) {
+      if (m_consoleCallback) {
+        m_consoleCallback(crtpConsoleResponse::text(p).c_str());
+      }
+    }
+    if (condition(p)) {
+      return p;
+    }
+  }
+}
+#if 0
 bool Crazyflie::sendPacketInternal(
   const uint8_t* data,
   uint32_t length,

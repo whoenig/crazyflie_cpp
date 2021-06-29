@@ -63,6 +63,80 @@ void quatdecompress(uint32_t comp, float q[4])
 	}
 	q[i_largest] = sqrtf(1.0f - sum_squares);
 }
+
+// Port 0 (Console)
+
+bool crtpConsoleResponse::valid(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+  return p.port() == 0 &&
+         p.channel() == 0 &&
+         p.payloadSize() > 0;
+}
+
+std::string crtpConsoleResponse::text(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+  return p.payloadAtString(0);
+}
+
+// Port 13 (Platform)
+
+crtpGetProtocolVersionRequest::crtpGetProtocolVersionRequest()
+  : Packet(13, 1, 1)
+{
+  setPayloadAt<uint8_t>(0, 0);
+}
+
+bool crtpGetProtocolVersionResponse::valid(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+  return  p.port() == 13 &&
+          p.channel() == 1 &&
+          p.payloadSize() == 5 &&
+          p.payloadAt<uint8_t>(0) == 0;
+}
+
+int crtpGetProtocolVersionResponse::version(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+  return p.payloadAt<int>(1);
+}
+
+crtpGetFirmwareVersionRequest::crtpGetFirmwareVersionRequest()
+    : Packet(13, 1, 1)
+{
+  setPayloadAt<uint8_t>(0, 1);
+}
+
+bool crtpGetFirmwareVersionResponse::valid(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+  return p.port() == 13 &&
+         p.channel() == 1 &&
+         p.payloadSize() > 1 &&
+         p.payloadAt<uint8_t>(0) == 1;
+}
+
+std::string crtpGetFirmwareVersionResponse::version(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+  return p.payloadAtString(1);
+}
+
+crtpGetDeviceTypeNameRequest::crtpGetDeviceTypeNameRequest()
+    : Packet(13, 1, 1)
+{
+  setPayloadAt<uint8_t>(0, 2);
+}
+
+bool crtpGetDeviceTypeNameResponse::valid(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+  return p.port() == 13 &&
+         p.channel() == 1 &&
+         p.payloadSize() > 1 &&
+         p.payloadAt<uint8_t>(0) == 2;
+}
+
+std::string crtpGetDeviceTypeNameResponse::name(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+  return p.payloadAtString(1);
+}
+
 #if 0
 crtpFullStateSetpointRequest::crtpFullStateSetpointRequest(
   float x, float y, float z,

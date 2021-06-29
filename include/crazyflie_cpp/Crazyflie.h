@@ -121,13 +121,13 @@ public:
   static std::vector<std::string> scan(
     uint64_t address = 0xE7E7E7E7E7);
 
-#if 0
+
   int getProtocolVersion();
 
   std::string getFirmwareVersion();
 
   std::string getDeviceTypeName();
-
+#if 0
   void logReset();
 
   void sendSetpoint(
@@ -358,8 +358,12 @@ public:
   // Memory subsystem
   void readUSDLogFile(
     std::vector<uint8_t>& data);
-
+#endif
 private:
+  bitcraze::crazyflieLinkCpp::Packet waitForResponse(
+      std::function<bool(const bitcraze::crazyflieLinkCpp::Packet&)> condition);
+
+#if 0
   void sendPacketInternal(
     const uint8_t* data,
     uint32_t length,

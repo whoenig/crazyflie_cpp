@@ -1,9 +1,9 @@
 #pragma once
 
 #include <cstdint>
-#if 0
-#include <crazyflieLinkCpp/Packet.hpp>
 
+#include <crazyflieLinkCpp/Packet.hpp>
+#if 0
 static int const CRTP_MAX_DATA_SIZE = 30;
 static int const CRTP_MAXSIZE = 31;
 #define CHECKSIZE(s) static_assert(sizeof(s) <= CRTP_MAXSIZE, #s " packet is too large");
@@ -51,20 +51,17 @@ typedef struct {
     uint8_t raw[CRTP_MAX_DATA_SIZE+1];
   };
 } crtpPacket_t;
-
+#endif
 
 // Port 0 (Console)
 struct crtpConsoleResponse
 {
-    static bool match(const Crazyradio::Ack& response) {
-      return crtp(response.data[0]) == crtp(0, 0);
-    }
+  static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p);
 
-    crtp header;
-    char text[31];
+  static std::string text(const bitcraze::crazyflieLinkCpp::Packet &p);
 };
-CHECKSIZE_RESPONSE(crtpConsoleResponse)
 
+#if 0
 // Port 2 (Parameters)
 
 enum ParamType : uint8_t 
@@ -1267,66 +1264,52 @@ struct crtpCommanderHighLevelDefineTrajectoryRequest
     struct trajectoryDescription description;
 } __attribute__((packed));
 CHECKSIZE(crtpCommanderHighLevelDefineTrajectoryRequest)
+#endif
 
 // Port 13 (Platform)
-
-struct crtpGetProtocolVersionRequest
+class crtpGetProtocolVersionRequest
+  : public bitcraze::crazyflieLinkCpp::Packet
 {
-  crtpGetProtocolVersionRequest()
-    : header(0x0D, 1)
-    {
-    }
-
-    const crtp header;
-    const uint8_t cmd = 0;
-} __attribute__((packed));
-CHECKSIZE(crtpGetProtocolVersionRequest)
+public:
+  crtpGetProtocolVersionRequest();
+};
 
 struct crtpGetProtocolVersionResponse
 {
-  crtpGetProtocolVersionRequest request;
-  int version;
-} __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpGetProtocolVersionResponse)
+  static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p);
 
-struct crtpGetFirmwareVersionRequest
+  static int version(const bitcraze::crazyflieLinkCpp::Packet &p);
+};
+
+class crtpGetFirmwareVersionRequest
+  : public bitcraze::crazyflieLinkCpp::Packet
 {
-  crtpGetFirmwareVersionRequest()
-    : header(0x0D, 1)
-    {
-    }
-
-    const crtp header;
-    const uint8_t cmd = 1;
-} __attribute__((packed));
-CHECKSIZE(crtpGetProtocolVersionRequest)
+public:
+  crtpGetFirmwareVersionRequest();
+};
 
 struct crtpGetFirmwareVersionResponse
 {
-  crtpGetFirmwareVersionRequest request;
-  char version[30];
-} __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpGetFirmwareVersionResponse)
+  static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p);
 
-struct crtpGetDeviceTypeNameRequest
+  static std::string version(const bitcraze::crazyflieLinkCpp::Packet &p);
+};
+
+class crtpGetDeviceTypeNameRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
-  crtpGetDeviceTypeNameRequest()
-    : header(0x0D, 1)
-    {
-    }
-
-    const crtp header;
-    const uint8_t cmd = 2;
-} __attribute__((packed));
-CHECKSIZE(crtpGetProtocolVersionRequest)
+public:
+  crtpGetDeviceTypeNameRequest();
+};
 
 struct crtpGetDeviceTypeNameResponse
 {
-  crtpGetDeviceTypeNameRequest request;
-  char name[30];
-} __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpGetDeviceTypeNameResponse)
+  static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p);
 
+  static std::string name(const bitcraze::crazyflieLinkCpp::Packet &p);
+};
+
+#if 0
 // The crazyflie-nrf firmware sends empty packets with the signal strength, if nothing else is in the queue
 struct crtpPlatformRSSIAck
 {
