@@ -1,11 +1,15 @@
-[![Build Status](https://travis-ci.org/whoenig/crazyflie_cpp.svg?branch=master)](https://travis-ci.org/whoenig/crazyflie_cpp)
+[![CMake](https://github.com/whoenig/crazyflie_cpp/actions/workflows/cmake.yml/badge.svg?branch=dev-crazyflie-link-cpp)](https://github.com/whoenig/crazyflie_cpp/actions/workflows/cmake.yml)
 
 # Crazyflie_cpp
 
 Standalone C++ library to use the Crazyflie quadrotor.
 This is used in crazyflie_ros, and crazyflie_tools, but can also be used for other custom applications.
 
+This repository relies on [crazyflie-link-cpp](https://github.com/bitcraze/crazyflie-link-cpp) for the low level communication link.
+
 ## Build
+
+Make sure to clone recursively with submodules.
 
 ```
 mkdir build
