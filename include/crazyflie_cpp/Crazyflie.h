@@ -30,7 +30,6 @@ extern Logger EmptyLogger;
 class Crazyflie
 {
 public:
-#if 0
   enum ParamType {
     ParamTypeUint8  = 0x00 | (0x00<<2) | (0x01<<3),
     ParamTypeInt8   = 0x00 | (0x00<<2) | (0x00<<3),
@@ -63,6 +62,7 @@ public:
     int32_t valueInt32;
     float valueFloat;
   };
+#if 0
 
   enum LogType {
     LogTypeUint8  = 1,
@@ -197,18 +197,18 @@ public:
     std::vector<uint8_t>& data);
 
   void requestLogToc(bool forceNoCache=false);
-
+#endif
   void requestParamToc(bool forceNoCache=false);
-
+#if 0
   void requestMemoryToc();
-
+#endif
   std::vector<ParamTocEntry>::const_iterator paramsBegin() const {
     return m_paramTocEntries.begin();
   }
   std::vector<ParamTocEntry>::const_iterator paramsEnd() const {
     return m_paramTocEntries.end();
   }
-
+#if 0
   std::vector<LogTocEntry>::const_iterator logVariablesBegin() const {
     return m_logTocEntries.begin();
   }
@@ -267,14 +267,14 @@ public:
   }
 
   void setRequestedParams();
-
+#endif
 
   template<class T>
   T getParam(uint16_t id) const {
     ParamValue v = getParam(id);
     return *(reinterpret_cast<T*>(&v));
   }
-
+#if 0
   const ParamTocEntry* getParamTocEntry(
     const std::string& group,
     const std::string& name) const;
@@ -497,12 +497,12 @@ private:
 
   void setParam(uint16_t id, const ParamValue& value);
   void addSetParam(uint16_t id, const ParamValue& value);
-
+#endif
 
   const ParamValue& getParam(uint16_t id) const {
     return m_paramValues.at(id);
   }
-
+#if 0
 private:
   Crazyradio* m_radio;
   ITransport* m_transport;
@@ -514,9 +514,10 @@ private:
 
   std::vector<LogTocEntry> m_logTocEntries;
   std::map<uint8_t, std::function<void(crtpLogDataResponse*, uint8_t)> > m_logBlockCb;
-
+#endif
   std::vector<ParamTocEntry> m_paramTocEntries;
   std::map<uint16_t, ParamValue> m_paramValues;
+#if 0
 
   std::vector<MemoryTocEntry> m_memoryTocEntries;
 
@@ -547,10 +548,8 @@ private:
   int m_curr_down;
 
   bool m_log_use_V2;
-  bool m_param_use_V2;
-
-  int m_protocolVersion;
 #endif
+  int m_protocolVersion;
   // logging
   Logger& m_logger;
 

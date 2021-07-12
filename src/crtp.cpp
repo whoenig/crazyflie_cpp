@@ -78,6 +78,94 @@ std::string crtpConsoleResponse::text(const bitcraze::crazyflieLinkCpp::Packet &
   return p.payloadAtString(0);
 }
 
+// Port 2 (Parameters)
+
+crtpParamTocGetItemV2Request::crtpParamTocGetItemV2Request(uint16_t id)
+	: Packet(2, 0, 3)
+{
+	setPayloadAt<uint8_t>(0, 2);
+	setPayloadAt<uint16_t>(1, id);
+}
+
+bool crtpParamTocGetItemV2Response::valid(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+	return p.port() == 2 &&
+		   p.channel() == 0 &&
+		   p.payloadSize() > 3 &&
+		   p.payloadAt<uint8_t>(0) == 2;
+}
+
+uint16_t crtpParamTocGetItemV2Response::id(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+	return p.payloadAt<uint16_t>(1);
+}
+
+ParamType crtpParamTocGetItemV2Response::type(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+	return (ParamType)(p.payloadAt<uint8_t>(3) & 0xF);
+}
+
+bool crtpParamTocGetItemV2Response::readonly(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+	return (p.payloadAt<uint8_t>(3) >> 6) & 0x1;
+}
+
+std::pair<std::string, std::string> crtpParamTocGetItemV2Response::groupAndName(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+	auto group =  p.payloadAtString(4);
+	auto name = p.payloadAtString(4+group.length()+1);
+	return std::make_pair(group, name);
+}
+
+
+crtpParamTocGetInfoV2Request::crtpParamTocGetInfoV2Request()
+	: Packet(2, 0, 1)
+{
+	setPayloadAt<uint8_t>(0, 3);
+}
+
+bool crtpParamTocGetInfoV2Response::valid(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+	return p.port() == 2 &&
+		   p.channel() == 0 &&
+		   p.payloadSize() == 7 &&
+		   p.payloadAt<uint8_t>(0) == 3;
+}
+
+uint16_t crtpParamTocGetInfoV2Response::numParams(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+	return p.payloadAt<int>(1);
+}
+
+uint32_t crtpParamTocGetInfoV2Response::crc(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+	return p.payloadAt<int>(1);
+}
+
+
+crtpParamReadV2Request::crtpParamReadV2Request(uint16_t id)
+	: Packet(2, 1, 2)
+{
+	setPayloadAt<uint16_t>(0, id);
+}
+
+bool crtpParamValueV2Response::valid(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+	return p.port() == 2 &&
+		   (p.channel() == 1 || p.channel() == 2) &&
+		   p.payloadSize() > 2;
+}
+
+uint16_t crtpParamValueV2Response::id(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+	return p.payloadAt<uint16_t>(0);
+}
+
+uint8_t crtpParamValueV2Response::status(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+	return p.payloadAt<uint8_t>(2);
+}
+
 // Port 13 (Platform)
 
 crtpGetProtocolVersionRequest::crtpGetProtocolVersionRequest()

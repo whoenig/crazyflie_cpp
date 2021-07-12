@@ -1,5 +1,6 @@
 //#include <regex>
 #include <mutex>
+#include <cassert>
 
 #include "Crazyflie.h"
 #include "crtp.h"
@@ -28,12 +29,10 @@ Crazyflie::Crazyflie(
   // , m_linkQualityCallback(nullptr)
   : m_consoleCallback(consoleCb)
   // , m_log_use_V2(false)
-  // , m_param_use_V2(false)
+  , m_protocolVersion(-1)
   , m_logger(logger)
   , m_connection(link_uri)
 {
-
-  // m_protocolVersion = -1;
 }
 
 std::vector<std::string> Crazyflie::scan(
@@ -604,101 +603,81 @@ void Crazyflie::requestLogToc(bool forceNoCache)
     }
   }
 }
-
+#endif
 void Crazyflie::requestParamToc(bool forceNoCache)
 {
-  m_param_use_V2 = true;
-  uint16_t numParam;
-  uint32_t crc;
-
   // Lazily initialize protocol version
   if (m_protocolVersion < 0) {
     m_protocolVersion = getProtocolVersion();
   }
+  if (m_protocolVersion < 4) {
+    m_logger.error("Old parameter interface not supported! Please update your firmware.");
+  }
 
   // Find the number of parameters in TOC
-  crtpParamTocGetInfoV2Request infoRequest;
-  startBatchRequest();
-  // std::cout << "infoReq" << std::endl;
-  addRequest(infoRequest, 1);
-  if (m_protocolVersion >= 4) {
-    handleRequests();
-    numParam = getRequestResult<crtpParamTocGetInfoV2Response>(0)->numParam;
-    crc = getRequestResult<crtpParamTocGetInfoV2Response>(0)->crc;
-  } else {
-    // std::cout << "Fall back to V1 param API" << std::endl;
-    m_param_use_V2 = false;
+  crtpParamTocGetInfoV2Request req;
+  m_connection.send(req);
+  using res = crtpParamTocGetInfoV2Response;
+  auto p = waitForResponse(&res::valid);
+  uint16_t numParams = res::numParams(p);
+  uint32_t crc = res::crc(p);
 
-    crtpParamTocGetInfoRequest infoRequest;
-    startBatchRequest();
-    addRequest(infoRequest, 1);
-    handleRequests();
-    numParam = getRequestResult<crtpParamTocGetInfoResponse>(0)->numParam;
-    crc = getRequestResult<crtpParamTocGetInfoResponse>(0)->crc;
-  }
+  m_logger.info("Param TOC: " + std::to_string(numParams) + " entries with CRC " + std::to_string(crc));
 
   // check if it is in the cache
   std::string fileName = "params" + std::to_string(crc) + ".csv";
   std::ifstream infile(fileName);
 
-  if (forceNoCache || !infile.good()) {
-    m_logger.info("Params: " + std::to_string(numParam));
+  m_paramTocEntries.clear();
+  if (!forceNoCache && infile.good()) {
+      m_logger.info("Param TOC: found cache.");
+      std::string line, cell;
+      std::getline(infile, line); // ignore header
+      while (std::getline(infile, line)) {
+        std::stringstream lineStream(line);
+        m_paramTocEntries.resize(m_paramTocEntries.size() + 1);
+        std::getline(lineStream, cell, ',');
+        m_paramTocEntries.back().id = std::stoi(cell);
+        std::getline(lineStream, cell, ',');
+        m_paramTocEntries.back().type = (ParamType)std::stoi(cell);
+        std::getline(lineStream, cell, ',');
+        m_paramTocEntries.back().readonly = std::stoi(cell);
+        std::getline(lineStream, cell, ',');
+        m_paramTocEntries.back().group = cell;
+        std::getline(lineStream, cell, ',');
+        m_paramTocEntries.back().name = cell;
+      }
+      if (m_paramTocEntries.size() != numParams) {
+        m_logger.warning("Param TOC: invalid cache.");
+        m_paramTocEntries.clear();
+      }
+  }
+  if (m_paramTocEntries.empty()) {
+    m_logger.info("Param TOC: not in cache");
 
-    // Request detailed information and values
-    startBatchRequest();
-    if (!m_param_use_V2) {
-      for (uint16_t i = 0; i < numParam; ++i) {
-        crtpParamTocGetItemRequest itemRequest(i);
-        addRequest(itemRequest, 2);
-        crtpParamReadRequest readRequest(i);
-        addRequest(readRequest, 1);
-      }
-    } else {
-      for (uint16_t i = 0; i < numParam; ++i) {
-        crtpParamTocGetItemV2Request itemRequest(i);
-        addRequest(itemRequest, 2);
-        crtpParamReadV2Request readRequest(i);
-        addRequest(readRequest, 1);
-      }
+    // Request detailed information
+    for (uint16_t i = 0; i < numParams; ++i) {
+      crtpParamTocGetItemV2Request req1(i);
+      m_connection.send(req1);
     }
-    handleRequests();
+
     // Update internal structure with obtained data
-    m_paramTocEntries.resize(numParam);
+    m_paramTocEntries.resize(numParams);
 
-    if (!m_param_use_V2) {
-      for (uint16_t i = 0; i < numParam; ++i) {
-        auto r = getRequestResult<crtpParamTocGetItemResponse>(i*2+0);
-        auto val = getRequestResult<crtpParamValueResponse>(i*2+1);
+    for (uint16_t i = 0; i < numParams; ++i) {
+      using res1 = crtpParamTocGetItemV2Response;
+      auto p1 = waitForResponse(&res1::valid);
 
-        ParamTocEntry& entry = m_paramTocEntries[i];
-        entry.id = i;
-        entry.type = (ParamType)(r->length | r-> type << 2 | r->sign << 3);
-        entry.readonly = r->readonly;
-        entry.group = std::string(&r->text[0]);
-        entry.name = std::string(&r->text[entry.group.size() + 1]);
+      ParamTocEntry &entry = m_paramTocEntries[i];
+      entry.id = i;
+      entry.type = (Crazyflie::ParamType) res1::type(p1);
+      entry.readonly = res1::readonly(p1);
+      auto groupAndName = res1::groupAndName(p1);
+      entry.group = groupAndName.first;
+      entry.name = groupAndName.second;
 
-        ParamValue v;
-        std::memcpy(&v, &val->valueFloat, 4);
-        m_paramValues[i] = v;
-      }
-    } else {
-      for (uint16_t i = 0; i < numParam; ++i) {
-        auto r = getRequestResult<crtpParamTocGetItemV2Response>(i*2+0);
-        auto val = getRequestResult<crtpParamValueV2Response>(i*2+1);
-
-        ParamTocEntry& entry = m_paramTocEntries[i];
-        entry.id = i;
-        entry.type = (ParamType)(r->length | r-> type << 2 | r->sign << 3);
-        entry.readonly = r->readonly;
-        entry.group = std::string(&r->text[0]);
-        entry.name = std::string(&r->text[entry.group.size() + 1]);
-
-        ParamValue v;
-        std::memcpy(&v, &val->valueFloat, 4);
-        m_paramValues[i] = v;
-      }
+      assert(res1::id(p1) == i);
     }
-
     // Write a cache file
     {
       // Atomic file write: write in temporary file first to avoid race conditions
@@ -715,57 +694,54 @@ void Crazyflie::requestParamToc(bool forceNoCache)
       // change the filename
       rename(fileNameTemp.c_str(), fileName.c_str());
     }
-  } else {
-    m_logger.info("Found variables in cache.");
-    m_paramTocEntries.clear();
-    std::string line, cell;
-    std::getline(infile, line); // ignore header
-    while (std::getline(infile, line)) {
-      std::stringstream lineStream(line);
-      m_paramTocEntries.resize(m_paramTocEntries.size() + 1);
-      std::getline(lineStream, cell, ',');
-      m_paramTocEntries.back().id = std::stoi(cell);
-      std::getline(lineStream, cell, ',');
-      m_paramTocEntries.back().type = (ParamType)std::stoi(cell);
-      std::getline(lineStream, cell, ',');
-      m_paramTocEntries.back().readonly = std::stoi(cell);
-      std::getline(lineStream, cell, ',');
-      m_paramTocEntries.back().group = cell;
-      std::getline(lineStream, cell, ',');
-      m_paramTocEntries.back().name = cell;
-    }
+  }
 
-    // Request values
-    if (!m_param_use_V2) {
-      startBatchRequest();
-      for (size_t i = 0; i < numParam; ++i) {
-        crtpParamReadRequest readRequest(i);
-        addRequest(readRequest, 1);
-      }
-      handleRequests();
-      for (size_t i = 0; i < numParam; ++i) {
-        auto val = getRequestResult<crtpParamValueResponse>(i);
-        ParamValue v;
-        std::memcpy(&v, &val->valueFloat, 4);
-        m_paramValues[i] = v;
-      }
-    } else {
-      startBatchRequest();
-      for (size_t i = 0; i < numParam; ++i) {
-        crtpParamReadV2Request readRequest(i);
-        addRequest(readRequest, 1);
-      }
-      handleRequests();
-      for (size_t i = 0; i < numParam; ++i) {
-        auto val = getRequestResult<crtpParamValueV2Response>(i);
-        ParamValue v;
-        std::memcpy(&v, &val->valueFloat, 4);
-        m_paramValues[i] = v;
-      }
+  // Request values
+  assert(m_paramTocEntries.size() == numParams);
+  
+  for (uint16_t i = 0; i < numParams; ++i)
+  {
+    crtpParamReadV2Request req2(i);
+    m_connection.send(req2);
+  }
+
+  for (uint16_t i = 0; i < numParams; ++i)
+  {
+    using res2 = crtpParamValueV2Response;
+    auto p2 = waitForResponse(&res2::valid);
+    assert(res2::status(p2) == 0);
+
+    const auto &entry = m_paramTocEntries[i];
+    switch (entry.type)
+    {
+    case ParamTypeUint8:
+      m_paramValues[i].valueUint8 = res2::value<uint8_t>(p2);
+      break;
+    case ParamTypeInt8:
+      m_paramValues[i].valueInt8 = res2::value<int8_t>(p2);
+      break;
+    case ParamTypeUint16:
+      m_paramValues[i].valueUint16 = res2::value<uint16_t>(p2);
+      break;
+    case ParamTypeInt16:
+      m_paramValues[i].valueInt16 = res2::value<int16_t>(p2);
+      break;
+    case ParamTypeUint32:
+      m_paramValues[i].valueUint32 = res2::value<uint32_t>(p2);
+      break;
+    case ParamTypeInt32:
+      m_paramValues[i].valueInt32 = res2::value<int32_t>(p2);
+      break;
+    case ParamTypeFloat:
+      m_paramValues[i].valueFloat = res2::value<float>(p2);
+      break;
+    default:
+      assert(false);
     }
+    assert(res2::id(p2) == i);
   }
 }
-
+#if 0
 void Crazyflie::requestMemoryToc()
 {
   // Find the number of parameters in TOC

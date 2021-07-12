@@ -61,7 +61,6 @@ struct crtpConsoleResponse
   static std::string text(const bitcraze::crazyflieLinkCpp::Packet &p);
 };
 
-#if 0
 // Port 2 (Parameters)
 
 enum ParamType : uint8_t 
@@ -75,6 +74,7 @@ enum ParamType : uint8_t
   ParamTypeFloat  = 0x02 | (0x01<<2) | (0x00<<3),
 };
 
+#if 0
 struct crtpParamTocGetItemResponse;
 struct crtpParamTocGetItemRequest
 {
@@ -253,41 +253,63 @@ struct crtpParamTocGetItemV2Response
   char text[27]; // group, name
 } __attribute__((packed));
 CHECKSIZE_RESPONSE(crtpParamTocGetItemV2Response)
+#endif
 
-struct crtpParamTocGetInfoV2Response;
-struct crtpParamTocGetInfoV2Request
+class crtpParamTocGetItemV2Request
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
-  crtpParamTocGetInfoV2Request()
-    : header(2, 0)
-    , command(3)
-  {
-  }
+public:
+  crtpParamTocGetItemV2Request(uint16_t id);
+};
 
-  bool operator==(const crtpParamTocGetInfoV2Request& other) const {
-    return header == other.header && command == other.command;
-  }
+struct crtpParamTocGetItemV2Response
+{
+  static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p);
 
-  typedef crtpParamTocGetInfoV2Response Response;
+  static uint16_t id(const bitcraze::crazyflieLinkCpp::Packet &p);
+  static ParamType type(const bitcraze::crazyflieLinkCpp::Packet &p);
+  static bool readonly(const bitcraze::crazyflieLinkCpp::Packet &p);
+  static std::pair<std::string, std::string> groupAndName(const bitcraze::crazyflieLinkCpp::Packet &p);
+};
 
-  const crtp header;
-  const uint8_t command;
-} __attribute__((packed));
-CHECKSIZE(crtpParamTocGetInfoV2Request)
+
+class crtpParamTocGetInfoV2Request
+    : public bitcraze::crazyflieLinkCpp::Packet
+{
+public:
+  crtpParamTocGetInfoV2Request();
+};
 
 struct crtpParamTocGetInfoV2Response
 {
-  static bool match(const Crazyradio::Ack& response) {
-    return response.size == 8 &&
-           crtp(response.data[0]) == crtp(2, 0) &&
-           response.data[1] == 3;
+  static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p);
+
+  static uint16_t numParams(const bitcraze::crazyflieLinkCpp::Packet &p);
+  static uint32_t crc(const bitcraze::crazyflieLinkCpp::Packet &p);
+};
+
+class crtpParamReadV2Request
+    : public bitcraze::crazyflieLinkCpp::Packet
+{
+public:
+  crtpParamReadV2Request(uint16_t id);
+};
+
+struct crtpParamValueV2Response
+{
+  static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p);
+
+  static uint16_t id(const bitcraze::crazyflieLinkCpp::Packet &p);
+  static uint8_t status(const bitcraze::crazyflieLinkCpp::Packet &p);
+
+  template <typename T>
+  static T value(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.payloadAt<T>(3);
   }
+};
 
-  crtpParamTocGetInfoV2Request request;
-  uint16_t numParam;
-  uint32_t crc;
-} __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpParamTocGetInfoV2Response)
-
+#if 0
 struct crtpParamValueV2Response;
 struct crtpParamReadV2Request
 {
