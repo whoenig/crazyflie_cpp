@@ -86,7 +86,7 @@ public:
     TargetSTM32 = 0xFF,
     TargetNRF51 = 0xFE,
   };
-
+#endif
   enum MemoryType {
     MemoryTypeEEPROM  = 0x00,
     MemoryTypeOneWire = 0x01,
@@ -96,7 +96,10 @@ public:
     MemoryTypeLOCO2   = 0x13,
     MemoryTypeLH      = 0x14,
     MemoryTypeTester  = 0x15,
-    MemoryTypeUSD     = 0x16, // Crazyswarm experimental
+    MemoryTypeUSD     = 0x16,
+    MemoryTypeLEDMem  = 0x17,
+    MemoryTypeApp     = 0x18,
+    MemoryTypeDeckMem = 0x19,
   };
 
   struct MemoryTocEntry {
@@ -105,7 +108,7 @@ public:
     uint32_t size;
     uint64_t addr;
   };
-
+#if 0
   struct poly4d {
     float p[4][8];
     float duration;
@@ -199,9 +202,7 @@ public:
 #endif
   void requestLogToc(bool forceNoCache=false);
   void requestParamToc(bool forceNoCache=false);
-#if 0
   void requestMemoryToc();
-#endif
   std::vector<ParamTocEntry>::const_iterator paramsBegin() const {
     return m_paramTocEntries.begin();
   }
@@ -216,7 +217,6 @@ public:
     return m_logTocEntries.end();
   }
 
-#if 0
   std::vector<MemoryTocEntry>::const_iterator memoriesBegin() const {
     return m_memoryTocEntries.begin();
   }
@@ -224,6 +224,7 @@ public:
     return m_memoryTocEntries.end();
   }
 
+#if 0
   template<class T>
   void setParam(uint16_t id, const T& value) {
     ParamValue v;
@@ -519,10 +520,10 @@ private:
 #endif
   std::vector<ParamTocEntry> m_paramTocEntries;
   std::map<uint16_t, ParamValue> m_paramValues;
-#if 0
 
   std::vector<MemoryTocEntry> m_memoryTocEntries;
 
+#if 0
   std::function<void(const crtpPlatformRSSIAck*)> m_emptyAckCallback;
   std::function<void(float)> m_linkQualityCallback;
 #endif

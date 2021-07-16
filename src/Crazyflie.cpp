@@ -592,85 +592,6 @@ void Crazyflie::requestLogToc(bool forceNoCache)
     }
   }
 
-#if 0
-  // check if it is in the cache
-  std::string fileName = "log" + std::to_string(crc) + ".csv";
-  std::ifstream infile(fileName);
-
-  if (forceNoCache || !infile.good()) {
-    m_logger.info("Log: " + std::to_string(len));
-
-    // Request detailed information
-    startBatchRequest();
-    if (m_log_use_V2) {
-      for (size_t i = 0; i < len; ++i) {
-        crtpLogGetItemV2Request itemRequest(i);
-        addRequest(itemRequest, 2);
-      }
-    } else {
-      for (size_t i = 0; i < len; ++i) {
-        crtpLogGetItemRequest itemRequest(i);
-        addRequest(itemRequest, 2);
-      }
-    }
-    handleRequests();
-
-    // Update internal structure with obtained data
-    m_logTocEntries.resize(len);
-    if (m_log_use_V2) {
-      for (size_t i = 0; i < len; ++i) {
-        auto response = getRequestResult<crtpLogGetItemV2Response>(i);
-        LogTocEntry& entry = m_logTocEntries[i];
-        entry.id = i;
-        entry.type = (LogType)response->type;
-        entry.group = std::string(&response->text[0]);
-        entry.name = std::string(&response->text[entry.group.size() + 1]);
-      }
-    } else {
-      for (size_t i = 0; i < len; ++i) {
-        auto response = getRequestResult<crtpLogGetItemResponse>(i);
-        LogTocEntry& entry = m_logTocEntries[i];
-        entry.id = i;
-        entry.type = (LogType)response->type;
-        entry.group = std::string(&response->text[0]);
-        entry.name = std::string(&response->text[entry.group.size() + 1]);
-      }
-    }
-
-    // Write a cache file
-    {
-      // Atomic file write: write in temporary file first to avoid race conditions
-      std::string fileNameTemp = fileName + ".tmp";
-      std::ofstream output(fileNameTemp);
-      output << "id,type,group,name" << std::endl;
-      for (const auto& entry : m_logTocEntries) {
-        output << std::to_string(entry.id) << ","
-               << std::to_string(entry.type) << ","
-               << entry.group << ","
-               << entry.name << std::endl;
-      }
-      // change the filename
-      rename(fileNameTemp.c_str(), fileName.c_str());
-    }
-  } else {
-    m_logger.info("Found variables in cache.");
-    m_logTocEntries.clear();
-    std::string line, cell;
-    std::getline(infile, line); // ignore header
-    while (std::getline(infile, line)) {
-      std::stringstream lineStream(line);
-      m_logTocEntries.resize(m_logTocEntries.size() + 1);
-      std::getline(lineStream, cell, ',');
-      m_logTocEntries.back().id = std::stoi(cell);
-      std::getline(lineStream, cell, ',');
-      m_logTocEntries.back().type = (LogType)std::stoi(cell);
-      std::getline(lineStream, cell, ',');
-      m_logTocEntries.back().group = cell;
-      std::getline(lineStream, cell, ',');
-      m_logTocEntries.back().name = cell;
-    }
-  }
-#endif
 }
 
 void Crazyflie::requestParamToc(bool forceNoCache)
@@ -811,39 +732,40 @@ void Crazyflie::requestParamToc(bool forceNoCache)
     assert(res2::id(p2) == i);
   }
 }
-#if 0
 void Crazyflie::requestMemoryToc()
 {
-  // Find the number of parameters in TOC
-  crtpMemoryGetNumberRequest infoRequest;
-  startBatchRequest();
-  addRequest(infoRequest, 1);
-  handleRequests();
-  uint8_t len = getRequestResult<crtpMemoryGetNumberResponse>(0)->numberOfMemories;
+  // Find the number of memories
+  crtpMemoryGetNumberRequest req;
+  m_connection.send(req);
+  using res = crtpMemoryGetNumberResponse;
+  auto p = waitForResponse(&res::valid);
+  uint8_t numberOfMemories = res::numberOfMemories(p);
 
-  m_logger.info("Memories: " + std::to_string(len));
+  m_logger.info("Memories: " + std::to_string(numberOfMemories));
 
-  // Request detailed information and values
-  startBatchRequest();
-  for (uint8_t i = 0; i < len; ++i) {
-    crtpMemoryGetInfoRequest itemRequest(i);
-    addRequest(itemRequest, 2);
+  // Request detailed information
+  for (uint8_t i = 0; i < numberOfMemories; ++i) {
+    crtpMemoryGetInfoRequest req(i);
+    m_connection.send(req);
   }
-  handleRequests();
 
   // Update internal structure with obtained data
-  m_memoryTocEntries.resize(len);
-  for (uint8_t i = 0; i < len; ++i) {
-    auto info = getRequestResult<crtpMemoryGetInfoResponse>(i);
+  m_memoryTocEntries.resize(numberOfMemories);
+  for (uint8_t i = 0; i < numberOfMemories; ++i) {
+    using res = crtpMemoryGetInfoResponse;
+    auto p = waitForResponse(&res::valid);
 
     MemoryTocEntry& entry = m_memoryTocEntries[i];
     entry.id = i;
-    entry.type = (MemoryType)info->memType;
-    entry.size = info->memSize;
-    entry.addr = info->memAddr;
+    entry.type = (MemoryType)res::type(p);
+    entry.size = res::size(p);
+    entry.addr = res::addr(p);
+
+    assert(i == res::id(p));
   }
 }
 
+#if 0
 void Crazyflie::startSetParamRequest()
 {
   startBatchRequest();

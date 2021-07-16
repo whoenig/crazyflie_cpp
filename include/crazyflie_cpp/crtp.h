@@ -269,72 +269,80 @@ struct crtpSetpointRequest
   uint16_t thrust;
 }  __attribute__((packed));
 CHECKSIZE(crtpSetpointRequest)
-
+#endif
 // Port 4 (Memory access)
 
-struct crtpMemoryGetNumberRequest
+class crtpMemoryGetNumberRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
+public:
   crtpMemoryGetNumberRequest()
-    : header(0x04, 0)
-    , command(1)
+    : Packet(4, 0, 1)
   {
+    setPayloadAt<uint8_t>(0, 1);
   }
-  const crtp header;
-  const uint8_t command;
-}  __attribute__((packed));
-CHECKSIZE(crtpMemoryGetNumberRequest)
+};
 
 struct crtpMemoryGetNumberResponse
 {
-    static bool match(const Crazyradio::Ack& response) {
-      return response.size == 3 &&
-             crtp(response.data[0]) == crtp(4, 0) &&
-             response.data[1] == 1;
-    }
-
-    crtpMemoryGetNumberRequest request;
-    uint8_t numberOfMemories;
-} __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpMemoryGetNumberResponse)
-
-struct crtpMemoryGetInfoRequest
-{
-  crtpMemoryGetInfoRequest(
-    uint8_t memId)
-    : header(0x04, 0)
-    , command(2)
-    , memId(memId)
+  static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p)
   {
+    return p.port() == 4 &&
+           p.channel() == 0 &&
+           p.payloadSize() == 2 &&
+           p.payloadAt<uint8_t>(0) == 1;
   }
-  const crtp header;
-  const uint8_t command;
-  uint8_t memId;
-}  __attribute__((packed));
-CHECKSIZE(crtpMemoryGetInfoRequest)
 
-enum crtpMemoryType : uint8_t
+  static uint8_t numberOfMemories(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.payloadAt<uint8_t>(1);
+  }
+};
+
+class crtpMemoryGetInfoRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
-  EEPROM = 0x00,
-  OW     = 0x01,
-  LED12  = 0x10,
-  LOCO   = 0x11,
+public:
+  crtpMemoryGetInfoRequest(uint8_t id)
+      : Packet(4, 0, 2)
+  {
+    setPayloadAt<uint8_t>(0, 2);
+    setPayloadAt<uint8_t>(1, id);
+  }
 };
 
 struct crtpMemoryGetInfoResponse
 {
-    static bool match(const Crazyradio::Ack& response) {
-      return response.size > 2 &&
-             crtp(response.data[0]) == crtp(4, 0) &&
-             response.data[1] == 2;
-    }
+  static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.port() == 4 &&
+           p.channel() == 0 &&
+           p.payloadSize() == 15 &&
+           p.payloadAt<uint8_t>(0) == 2;
+  }
 
-    crtpMemoryGetInfoRequest request;
-    crtpMemoryType memType;
-    uint32_t memSize; // Bytes
-    uint64_t memAddr; // valid for OW and EEPROM
-} __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpMemoryGetInfoResponse)
+  static uint8_t id(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.payloadAt<uint8_t>(1);
+  }
 
+  static uint8_t type(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.payloadAt<uint8_t>(2);
+  }
+
+  static uint32_t size(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.payloadAt<uint32_t>(3);
+  }
+
+  static uint64_t addr(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.payloadAt<uint64_t>(7);
+  }
+};
+
+#if 0
 struct crtpMemoryReadRequest
 {
   crtpMemoryReadRequest(
