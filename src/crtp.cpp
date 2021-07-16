@@ -166,6 +166,74 @@ uint8_t crtpParamValueV2Response::status(const bitcraze::crazyflieLinkCpp::Packe
 	return p.payloadAt<uint8_t>(2);
 }
 
+// Port 5 (Logging)
+
+crtpLogGetInfoV2Request::crtpLogGetInfoV2Request()
+	: Packet(5, 0, 1)
+{
+	setPayloadAt<uint8_t>(0, 3);
+}
+
+bool crtpLogGetInfoV2Response::valid(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+	return p.port() == 5 &&
+		   p.channel() == 0 &&
+		   p.payloadSize() == 9 &&
+		   p.payloadAt<uint8_t>(0) == 3;
+}
+
+uint16_t crtpLogGetInfoV2Response::numLogVariables(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+	return p.payloadAt<uint16_t>(1);
+}
+
+uint32_t crtpLogGetInfoV2Response::crc(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+	return p.payloadAt<uint32_t>(3);
+}
+
+uint8_t crtpLogGetInfoV2Response::numMaxLogBlocks(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+	return p.payloadAt<uint8_t>(7);
+}
+
+uint8_t crtpLogGetInfoV2Response::numMaxOps(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+	return p.payloadAt<uint8_t>(8);
+}
+
+crtpLogGetItemV2Request::crtpLogGetItemV2Request(uint16_t id)
+	: Packet(5, 0, 3)
+{
+	setPayloadAt<uint8_t>(0, 2);
+	setPayloadAt<uint16_t>(1, id);
+}
+
+bool crtpLogGetItemV2Response::valid(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+	return p.port() == 5 &&
+		   p.channel() == 0 &&
+		   p.payloadSize() > 3 &&
+		   p.payloadAt<uint8_t>(0) == 2;
+}
+
+uint16_t crtpLogGetItemV2Response::id(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+	return p.payloadAt<uint16_t>(1);
+}
+
+uint8_t crtpLogGetItemV2Response::type(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+	return p.payloadAt<uint8_t>(3);
+}
+
+std::pair<std::string, std::string> crtpLogGetItemV2Response::groupAndName(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+	auto group = p.payloadAtString(4);
+	auto name = p.payloadAtString(4 + group.length() + 1);
+	return std::make_pair(group, name);
+}
+
 // Port 13 (Platform)
 
 crtpGetProtocolVersionRequest::crtpGetProtocolVersionRequest()

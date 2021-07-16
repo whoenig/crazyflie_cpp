@@ -61,7 +61,9 @@ struct crtpConsoleResponse
   static std::string text(const bitcraze::crazyflieLinkCpp::Packet &p);
 };
 
+//////////////////////
 // Port 2 (Parameters)
+//////////////////////
 
 enum ParamType : uint8_t 
 {
@@ -74,187 +76,7 @@ enum ParamType : uint8_t
   ParamTypeFloat  = 0x02 | (0x01<<2) | (0x00<<3),
 };
 
-#if 0
-struct crtpParamTocGetItemResponse;
-struct crtpParamTocGetItemRequest
-{
-  crtpParamTocGetItemRequest(
-    uint8_t id)
-    : header(2, 0)
-    , command(0)
-    , id(id)
-  {
-  }
-
-  bool operator==(const crtpParamTocGetItemRequest& other) const {
-    return header == other.header && command == other.command && id == other.id;
-  }
-
-  typedef crtpParamTocGetItemResponse Response;
-
-  const crtp header;
-  const uint8_t command;
-  uint8_t id;
-} __attribute__((packed));
-CHECKSIZE(crtpParamTocGetItemRequest)
-
-struct crtpParamTocGetItemResponse
-{
-  static bool match(const Crazyradio::Ack& response) {
-    return response.size > 5 &&
-           crtp(response.data[0]) == crtp(2, 0) &&
-           response.data[1] == 0;
-  }
-
-  crtpParamTocGetItemRequest request;
-  uint8_t length:2; // one of ParamLength
-  uint8_t type:1;   // one of ParamType
-  uint8_t sign:1;   // one of ParamSign
-  uint8_t res0:2;   // reserved
-  uint8_t readonly:1;
-  uint8_t group:1;  // one of ParamGroup
-  char text[28]; // group, name
-} __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpParamTocGetItemResponse)
-
-struct crtpParamTocGetInfoResponse;
-struct crtpParamTocGetInfoRequest
-{
-  crtpParamTocGetInfoRequest()
-    : header(2, 0)
-    , command(1)
-  {
-  }
-
-  bool operator==(const crtpParamTocGetInfoRequest& other) const {
-    return header == other.header && command == other.command;
-  }
-
-  typedef crtpParamTocGetInfoResponse Response;
-
-  const crtp header;
-  const uint8_t command;
-} __attribute__((packed));
-CHECKSIZE(crtpParamTocGetInfoRequest)
-
-struct crtpParamTocGetInfoResponse
-{
-  static bool match(const Crazyradio::Ack& response) {
-    return response.size == 7 &&
-           crtp(response.data[0]) == crtp(2, 0) &&
-           response.data[1] == 1;
-  }
-
-  crtpParamTocGetInfoRequest request;
-  uint8_t numParam;
-  uint32_t crc;
-} __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpParamTocGetInfoResponse)
-
-struct crtpParamValueResponse;
-struct crtpParamReadRequest
-{
-  crtpParamReadRequest(
-    uint8_t id)
-    : header(2, 1)
-    , id(id)
-  {
-  }
-
-  bool operator==(const crtpParamReadRequest& other) const {
-    return header == other.header && id == other.id;
-  }
-
-  typedef crtpParamValueResponse Response;
-
-  const crtp header;
-  const uint8_t id;
-} __attribute__((packed));
-CHECKSIZE(crtpParamReadRequest)
-
-template <class T>
-struct crtpParamWriteRequest
-{
-  crtpParamWriteRequest(
-    uint8_t id,
-    const T& value)
-    : header(2, 2)
-    , id(id)
-    , value(value)
-    {
-    }
-
-    const crtp header;
-    const uint8_t id;
-    const T value;
-} __attribute__((packed));
-CHECKSIZE(crtpParamWriteRequest<double>) // largest kind of param
-
-struct crtpParamValueResponse
-{
-  static bool match(const Crazyradio::Ack& response) {
-    return response.size > 2 &&
-           (crtp(response.data[0]) == crtp(2, 1) ||
-            crtp(response.data[0]) == crtp(2, 2));
-  }
-
-  crtpParamReadRequest request;
-  union {
-    uint8_t valueUint8;
-    int8_t valueInt8;
-    uint16_t valueUint16;
-    int16_t valueInt16;
-    uint32_t valueUint32;
-    int32_t valueInt32;
-    float valueFloat;
-  };
-} __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpParamValueResponse)
-
-// V2
-struct crtpParamTocGetItemV2Response;
-struct crtpParamTocGetItemV2Request
-{
-  crtpParamTocGetItemV2Request(
-    uint16_t id)
-    : header(2, 0)
-    , command(2)
-    , id(id)
-  {
-  }
-
-  bool operator==(const crtpParamTocGetItemV2Request& other) const {
-    return header == other.header && command == other.command && id == other.id;
-  }
-
-  typedef crtpParamTocGetItemResponse Response;
-
-  const crtp header;
-  const uint8_t command;
-  uint16_t id;
-} __attribute__((packed));
-CHECKSIZE(crtpParamTocGetItemV2Request)
-
-struct crtpParamTocGetItemV2Response
-{
-  static bool match(const Crazyradio::Ack& response) {
-    return response.size > 5 &&
-           crtp(response.data[0]) == crtp(2, 0) &&
-           response.data[1] == 2;
-  }
-
-  crtpParamTocGetItemV2Request request;
-  uint8_t length:2; // one of ParamLength
-  uint8_t type:1;   // one of ParamType
-  uint8_t sign:1;   // one of ParamSign
-  uint8_t res0:2;   // reserved
-  uint8_t readonly:1;
-  uint8_t group:1;  // one of ParamGroup
-  char text[27]; // group, name
-} __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpParamTocGetItemV2Response)
-#endif
-
+// Get basic information about a specific parameter
 class crtpParamTocGetItemV2Request
     : public bitcraze::crazyflieLinkCpp::Packet
 {
@@ -272,7 +94,7 @@ struct crtpParamTocGetItemV2Response
   static std::pair<std::string, std::string> groupAndName(const bitcraze::crazyflieLinkCpp::Packet &p);
 };
 
-
+// Get basic information about param table of contents (TOC)
 class crtpParamTocGetInfoV2Request
     : public bitcraze::crazyflieLinkCpp::Packet
 {
@@ -288,6 +110,7 @@ struct crtpParamTocGetInfoV2Response
   static uint32_t crc(const bitcraze::crazyflieLinkCpp::Packet &p);
 };
 
+// Request the current value of a parameter
 class crtpParamReadV2Request
     : public bitcraze::crazyflieLinkCpp::Packet
 {
@@ -578,82 +401,44 @@ struct crtpMemoryWriteResponse
 CHECKSIZE_RESPONSE(crtpMemoryWriteResponse)
 
 // Port 5 (Data logging)
+#endif
 
-struct crtpLogGetInfoResponse;
-struct crtpLogGetInfoRequest
+// Get basic information about table of contents (TOC)
+class crtpLogGetInfoV2Request
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
-  crtpLogGetInfoRequest()
-    : header(5, 0)
-    , command(1)
-    {
-    }
+public:
+  crtpLogGetInfoV2Request();
+};
 
-  bool operator==(const crtpLogGetInfoRequest& other) const {
-    return header == other.header && command == other.command;
-  }
-
-  typedef crtpLogGetInfoResponse Response;
-
-  const crtp header;
-  const uint8_t command;
-} __attribute__((packed));
-CHECKSIZE(crtpLogGetInfoRequest)
-
-struct crtpLogGetInfoResponse
+struct crtpLogGetInfoV2Response
 {
-  static bool match(const Crazyradio::Ack& response) {
-    return response.size == 9 &&
-           crtp(response.data[0]) == crtp(5, 0) &&
-           response.data[1] == 1;
-  }
+  static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p);
 
-  crtpLogGetInfoRequest request;
-  // Number of log items contained in the log table of content
-  uint8_t log_len;
-  // CRC values of the log TOC memory content. This is a fingerprint of the copter build that can be used to cache the TOC
-  uint32_t log_crc;
-  // Maximum number of log packets that can be programmed in the copter
-  uint8_t log_max_packet;
-  // Maximum number of operation programmable in the copter. An operation is one log variable retrieval programming
-  uint8_t log_max_ops;
-} __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpLogGetInfoResponse)
+  static uint16_t numLogVariables(const bitcraze::crazyflieLinkCpp::Packet &p);
+  static uint32_t crc(const bitcraze::crazyflieLinkCpp::Packet &p);
+  static uint8_t numMaxLogBlocks(const bitcraze::crazyflieLinkCpp::Packet &p);
+  static uint8_t numMaxOps(const bitcraze::crazyflieLinkCpp::Packet &p);
+};
 
-struct crtpLogGetItemResponse;
-struct crtpLogGetItemRequest
+// Get basic information about a specific entries
+class crtpLogGetItemV2Request
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
-  crtpLogGetItemRequest(uint8_t id)
-    : header(5, 0)
-    , command(0)
-    , id(id)
-  {
-  }
+public:
+  crtpLogGetItemV2Request(uint16_t id);
+};
 
-  bool operator==(const crtpLogGetItemRequest& other) const {
-    return header == other.header && command == other.command && id == other.id;
-  }
-
-  typedef crtpLogGetItemResponse Response;
-
-  const crtp header;
-  const uint8_t command;
-  uint8_t id;
-} __attribute__((packed));
-CHECKSIZE(crtpLogGetItemRequest)
-
-struct crtpLogGetItemResponse
+struct crtpLogGetItemV2Response
 {
-    static bool match(const Crazyradio::Ack& response) {
-      return response.size > 5 &&
-             crtp(response.data[0]) == crtp(5, 0) &&
-             response.data[1] == 0;
-    }
+  static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p);
 
-    crtpLogGetItemRequest request;
-    uint8_t type;
-    char text[28]; // group, name
-} __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpLogGetItemResponse)
+  static uint16_t id(const bitcraze::crazyflieLinkCpp::Packet &p);
+  static uint8_t type(const bitcraze::crazyflieLinkCpp::Packet &p); // one of LogType actually
+  static std::pair<std::string, std::string> groupAndName(const bitcraze::crazyflieLinkCpp::Packet &p);
+};
+
+#if 0
 
 struct logBlockItem {
   uint8_t logType;
@@ -790,46 +575,6 @@ struct crtpLogDataResponse
 CHECKSIZE_RESPONSE(crtpLogDataResponse)
 
 // V2
-struct crtpLogGetInfoV2Response;
-struct crtpLogGetInfoV2Request
-{
-  crtpLogGetInfoV2Request()
-    : header(5, 0)
-    , command(3)
-    {
-    }
-
-  bool operator==(const crtpLogGetInfoV2Request& other) const {
-    return header == other.header && command == other.command;
-  }
-
-  typedef crtpLogGetInfoV2Response Response;
-
-  const crtp header;
-  const uint8_t command;
-} __attribute__((packed));
-CHECKSIZE(crtpLogGetInfoV2Request)
-
-struct crtpLogGetInfoV2Response
-{
-  static bool match(const Crazyradio::Ack& response) {
-    return response.size == 10 &&
-           crtp(response.data[0]) == crtp(5, 0) &&
-           response.data[1] == 3;
-  }
-
-  crtpLogGetInfoRequest request;
-  // Number of log items contained in the log table of content
-  uint16_t log_len;
-  // CRC values of the log TOC memory content. This is a fingerprint of the copter build that can be used to cache the TOC
-  uint32_t log_crc;
-  // Maximum number of log packets that can be programmed in the copter
-  uint8_t log_max_packet;
-  // Maximum number of operation programmable in the copter. An operation is one log variable retrieval programming
-  uint8_t log_max_ops;
-} __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpLogGetInfoV2Response)
-
 struct crtpLogGetItemV2Response;
 struct crtpLogGetItemV2Request
 {

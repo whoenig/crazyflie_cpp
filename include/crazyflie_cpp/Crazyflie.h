@@ -62,7 +62,6 @@ public:
     int32_t valueInt32;
     float valueFloat;
   };
-#if 0
 
   enum LogType {
     LogTypeUint8  = 1,
@@ -82,6 +81,7 @@ public:
     std::string name;
   };
 
+#if 0
   enum BootloaderTarget {
     TargetSTM32 = 0xFF,
     TargetNRF51 = 0xFE,
@@ -196,8 +196,8 @@ public:
     size_t size,
     std::vector<uint8_t>& data);
 
-  void requestLogToc(bool forceNoCache=false);
 #endif
+  void requestLogToc(bool forceNoCache=false);
   void requestParamToc(bool forceNoCache=false);
 #if 0
   void requestMemoryToc();
@@ -208,7 +208,7 @@ public:
   std::vector<ParamTocEntry>::const_iterator paramsEnd() const {
     return m_paramTocEntries.end();
   }
-#if 0
+
   std::vector<LogTocEntry>::const_iterator logVariablesBegin() const {
     return m_logTocEntries.begin();
   }
@@ -216,6 +216,7 @@ public:
     return m_logTocEntries.end();
   }
 
+#if 0
   std::vector<MemoryTocEntry>::const_iterator memoriesBegin() const {
     return m_memoryTocEntries.begin();
   }
@@ -511,8 +512,9 @@ private:
   uint8_t m_channel;
   uint64_t m_address;
   Crazyradio::Datarate m_datarate;
-
+#endif
   std::vector<LogTocEntry> m_logTocEntries;
+#if 0
   std::map<uint8_t, std::function<void(crtpLogDataResponse*, uint8_t)> > m_logBlockCb;
 #endif
   std::vector<ParamTocEntry> m_paramTocEntries;

@@ -493,38 +493,106 @@ void Crazyflie::readFlash(
     }
   }
 }
+#endif
 
 void Crazyflie::requestLogToc(bool forceNoCache)
 {
-  m_log_use_V2 = true;
-  uint16_t len;
-  uint32_t crc;
-
   // Lazily initialize protocol version
-  if (m_protocolVersion < 0) {
+  if (m_protocolVersion < 0)
+  {
     m_protocolVersion = getProtocolVersion();
   }
-
-  crtpLogGetInfoV2Request infoRequest;
-  startBatchRequest();
-  addRequest(infoRequest, 1);
-  if (m_protocolVersion >= 4) {
-    handleRequests();
-    len = getRequestResult<crtpLogGetInfoV2Response>(0)->log_len;
-    crc = getRequestResult<crtpLogGetInfoV2Response>(0)->log_crc;
-  } else {
-    // std::cout << "Fall back to V1 param API" << std::endl;
-    m_log_use_V2 = false;
-
-    crtpLogGetInfoRequest infoRequest;
-    startBatchRequest();
-    addRequest(infoRequest, 1);
-    handleRequests();
-    len = getRequestResult<crtpLogGetInfoResponse>(0)->log_len;
-    crc = getRequestResult<crtpLogGetInfoResponse>(0)->log_crc;
-    // std::cout << len << std::endl;
+  if (m_protocolVersion < 4)
+  {
+    m_logger.error("Old logging interface not supported! Please update your firmware.");
+    return;
   }
 
+  // Find the number of entries in TOC
+  crtpLogGetInfoV2Request req;
+  m_connection.send(req);
+  using res = crtpLogGetInfoV2Response;
+  auto p = waitForResponse(&res::valid);
+  uint16_t numLogVariables = res::numLogVariables(p);
+  uint32_t crc = res::crc(p);
+
+  m_logger.info("Log TOC: " + std::to_string(numLogVariables) + " entries with CRC " + std::to_string(crc));
+
+  // check if it is in the cache
+  std::string fileName = "log" + std::to_string(crc) + ".csv";
+  std::ifstream infile(fileName);
+
+  m_logTocEntries.clear();
+  if (!forceNoCache && infile.good())
+  {
+    m_logger.info("Log TOC: found cache.");
+    std::string line, cell;
+    std::getline(infile, line); // ignore header
+    while (std::getline(infile, line)) {
+      std::stringstream lineStream(line);
+      m_logTocEntries.resize(m_logTocEntries.size() + 1);
+      std::getline(lineStream, cell, ',');
+      m_logTocEntries.back().id = std::stoi(cell);
+      std::getline(lineStream, cell, ',');
+      m_logTocEntries.back().type = (LogType)std::stoi(cell);
+      std::getline(lineStream, cell, ',');
+      m_logTocEntries.back().group = cell;
+      std::getline(lineStream, cell, ',');
+      m_logTocEntries.back().name = cell;
+    }
+    if (m_logTocEntries.size() != numLogVariables)
+    {
+      m_logger.warning("Log TOC: invalid cache.");
+      m_logTocEntries.clear();
+    }
+  }
+  if (m_logTocEntries.empty())
+  {
+    m_logger.info("Log TOC: not in cache");
+
+    // Update internal structure with obtained data
+    m_logTocEntries.resize(numLogVariables);
+
+    // Request detailed information
+    for (uint16_t i = 0; i < numLogVariables; ++i)
+    {
+      crtpLogGetItemV2Request req1(i);
+      m_connection.send(req1);
+    }
+
+    for (uint16_t i = 0; i < numLogVariables; ++i)
+    {
+      using res = crtpLogGetItemV2Response;
+      auto p = waitForResponse(&res::valid);
+
+      LogTocEntry &entry = m_logTocEntries[i];
+      entry.id = i;
+      entry.type = (Crazyflie::LogType)res::type(p);
+      auto groupAndName = res::groupAndName(p);
+      entry.group = groupAndName.first;
+      entry.name = groupAndName.second;
+
+      assert(res::id(p) == i);
+    }
+    // Write a cache file
+    {
+      // Atomic file write: write in temporary file first to avoid race conditions
+      std::string fileNameTemp = fileName + ".tmp";
+      std::ofstream output(fileNameTemp);
+      output << "id,type,group,name" << std::endl;
+      for (const auto &entry : m_logTocEntries)
+      {
+        output << std::to_string(entry.id) << ","
+               << std::to_string(entry.type) << ","
+               << entry.group << ","
+               << entry.name << std::endl;
+      }
+      // change the filename
+      rename(fileNameTemp.c_str(), fileName.c_str());
+    }
+  }
+
+#if 0
   // check if it is in the cache
   std::string fileName = "log" + std::to_string(crc) + ".csv";
   std::ifstream infile(fileName);
@@ -602,8 +670,9 @@ void Crazyflie::requestLogToc(bool forceNoCache)
       m_logTocEntries.back().name = cell;
     }
   }
-}
 #endif
+}
+
 void Crazyflie::requestParamToc(bool forceNoCache)
 {
   // Lazily initialize protocol version
@@ -612,6 +681,7 @@ void Crazyflie::requestParamToc(bool forceNoCache)
   }
   if (m_protocolVersion < 4) {
     m_logger.error("Old parameter interface not supported! Please update your firmware.");
+    return;
   }
 
   // Find the number of parameters in TOC
