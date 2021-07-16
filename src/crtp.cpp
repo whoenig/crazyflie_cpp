@@ -8,7 +8,7 @@
 
 // compress a unit quaternion into 32 bits.
 // assumes input quaternion is normalized. will fail if not.
-static inline uint32_t quatcompress(float const q[4])
+uint32_t quatcompress(float const q[4])
 {
 	// we send the values of the quaternion's smallest 3 elements.
 	unsigned i_largest = 0;
