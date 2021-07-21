@@ -446,74 +446,52 @@ struct crtpLogGetItemV2Response
   static std::pair<std::string, std::string> groupAndName(const bitcraze::crazyflieLinkCpp::Packet &p);
 };
 
-#if 0
-
-struct logBlockItem {
-  uint8_t logType;
-  uint8_t id;
-} __attribute__((packed));
-
-struct crtpLogCreateBlockRequest
+class crtpLogCreateBlockV2Request
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
-  crtpLogCreateBlockRequest()
-  : header(5, 1)
-  , command(0)
+public:
+  crtpLogCreateBlockV2Request(uint8_t id)
+      : Packet(5, 1, 2)
   {
+    setPayloadAt<uint8_t>(0, 6); // command
+    setPayloadAt<uint8_t>(1, id); // logBlock Id
   }
 
-  const crtp header;
-  const uint8_t command;
-  uint8_t id;
-  logBlockItem items[14];
-} __attribute__((packed));
-CHECKSIZE(crtpLogCreateBlockRequest)
+  void add(uint8_t logType, uint16_t id)
+  {
+    uint8_t idx = payloadSize();
+    setPayloadSize(idx + 3);
+    setPayloadAt<uint8_t>(idx, logType);
+    setPayloadAt<uint16_t>(idx+1, id);
+  }
+};
 
-// struct logAppendBlockRequest
-// {
-//   logAppendBlockRequest()
-//     : header(5, 1)
-//     , command(1)
-//     {
-//     }
-
-//     const crtp header;
-//     const uint8_t command;
-//     uint8_t id;
-//     logBlockItem items[16];
-// } __attribute__((packed));
-
-// struct logDeleteBlockRequest
-// {
-//   logDeleteBlockRequest()
-//     : header(5, 1)
-//     , command(2)
-//     {
-//     }
-
-//     const crtp header;
-//     const uint8_t command;
-//     uint8_t id;
-// } __attribute__((packed));
-
-struct crtpLogStartRequest
+class crtpLogStartRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
-  crtpLogStartRequest(
-    uint8_t id,
-    uint8_t period)
-    : header(5, 1)
-    , command(3)
-    , id(id)
-    , period(period)
-    {
-    }
+public:
+  crtpLogStartRequest(uint8_t id, uint8_t period)
+      : Packet(5, 1, 3)
+  {
+    setPayloadAt<uint8_t>(0, 3);  // command
+    setPayloadAt<uint8_t>(1, id); // logBlock Id
+    setPayloadAt<uint8_t>(2, period); // period in increments of 10ms
+  }
+};
 
-    const crtp header;
-    const uint8_t command;
-    uint8_t id;
-    uint8_t period; // in increments of 10ms
-} __attribute__((packed));
-CHECKSIZE(crtpLogStartRequest)
+class crtpLogStopRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
+{
+public:
+  crtpLogStopRequest(uint8_t id)
+      : Packet(5, 1, 2)
+  {
+    setPayloadAt<uint8_t>(0, 4);      // command
+    setPayloadAt<uint8_t>(1, id);     // logBlock Id
+  }
+};
 
+#if 0
 struct crtpLogStopRequest
 {
   crtpLogStopRequest(
@@ -542,8 +520,8 @@ struct crtpLogResetRequest
     const uint8_t command;
 } __attribute__((packed));
 CHECKSIZE(crtpLogResetRequest)
-
-enum crtpLogControlResult {
+#endif
+enum crtpLogControlResult : uint8_t {
   crtpLogControlResultOk            = 0,
   crtpLogControlResultOutOfMemory   = 12, // ENOMEM
   crtpLogControlResultCmdNotFound   = 8,  // ENOEXEC
@@ -555,90 +533,60 @@ enum crtpLogControlResult {
 
 struct crtpLogControlResponse
 {
-    static bool match(const Crazyradio::Ack& response) {
-      return response.size == 4 &&
-             crtp(response.data[0]) == crtp(5, 1);
-    }
+  static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.port() == 5 &&
+           p.channel() == 1 &&
+           p.payloadSize() == 3;
+  }
 
-    crtp header;
-    uint8_t command;
-    uint8_t requestByte1;
-    uint8_t result; // one of crtpLogControlResult
-} __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpLogControlResponse)
+  static uint8_t command(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.payloadAt<uint8_t>(0);
+  }
+
+  static uint8_t requestByte1(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.payloadAt<uint8_t>(1);
+  }
+
+  static crtpLogControlResult result(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.payloadAt<crtpLogControlResult>(2);
+  }
+};
 
 struct crtpLogDataResponse
 {
-    static bool match(const Crazyradio::Ack& response) {
-      return response.size > 4 &&
-             crtp(response.data[0]) == crtp(5, 2);
-    }
+  static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.port() == 5 &&
+           p.channel() == 2 &&
+           p.payloadSize() > 3;
+  }
 
-    crtp header;
-    uint8_t blockId;
-    uint8_t timestampLo;
-    uint16_t timestampHi;
-    uint8_t data[26];
-} __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpLogDataResponse)
+  static uint8_t blockId(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.payloadAt<uint8_t>(0);
+  }
 
+  static uint32_t timestampMS(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    uint8_t timestampLo = p.payloadAt<uint8_t>(1);
+    uint16_t timestampHi = p.payloadAt<uint16_t>(2);
+    uint32_t time_in_ms = ((uint32_t)timestampHi << 8) | timestampLo;
+    return time_in_ms;
+  }
+
+  template <typename T>
+  static T variableAt(const bitcraze::crazyflieLinkCpp::Packet &p, uint8_t idx)
+  {
+    return p.payloadAt<T>(4+idx);
+  }
+};
+
+#if 0
 // V2
-struct crtpLogGetItemV2Response;
-struct crtpLogGetItemV2Request
-{
-  crtpLogGetItemV2Request(uint16_t id)
-    : header(5, 0)
-    , command(2)
-    , id(id)
-  {
-  }
-
-  bool operator==(const crtpLogGetItemV2Request& other) const {
-    return header == other.header && command == other.command && id == other.id;
-  }
-
-  typedef crtpLogGetItemV2Response Response;
-
-  const crtp header;
-  const uint8_t command;
-  uint16_t id;
-} __attribute__((packed));
-CHECKSIZE(crtpLogGetItemV2Request)
-
-struct crtpLogGetItemV2Response
-{
-    static bool match(const Crazyradio::Ack& response) {
-      return response.size > 6 &&
-             crtp(response.data[0]) == crtp(5, 0) &&
-             response.data[1] == 2;
-    }
-
-    crtpLogGetItemV2Request request;
-    uint8_t type;
-    char text[27]; // group, name
-} __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpLogGetItemV2Response)
-
-struct logBlockItemV2 {
-  uint8_t logType;
-  uint16_t id;
-} __attribute__((packed));
-
-struct crtpLogCreateBlockV2Request
-{
-  crtpLogCreateBlockV2Request()
-  : header(5, 1)
-  , command(6)
-  {
-  }
-
-  const crtp header;
-  const uint8_t command;
-  uint8_t id;
-  logBlockItemV2 items[9];
-} __attribute__((packed));
-CHECKSIZE(crtpLogCreateBlockV2Request)
-
 struct crtpLogAppendBlockV2Request
 {
   crtpLogAppendBlockV2Request()

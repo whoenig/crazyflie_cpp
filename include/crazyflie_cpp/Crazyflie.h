@@ -295,7 +295,7 @@ public:
     std::function<void(const char*)> cb) {
     m_consoleCallback = cb;
   }
-
+#endif
   static size_t size(LogType t) {
     switch(t) {
       case LogTypeUint8:
@@ -317,7 +317,7 @@ public:
         return 0;
     }
   }
-
+#if 0
 
   void setGenericPacketCallback(
     std::function<void(const ITransport::Ack&)> cb) {
@@ -485,6 +485,7 @@ private:
   //   ParamGroupGroup    = 1,
   // };
 
+#endif
 
 private:
   const LogTocEntry* getLogTocEntry(
@@ -492,20 +493,19 @@ private:
     const std::string& name) const;
 
   uint8_t registerLogBlock(
-    std::function<void(crtpLogDataResponse*, uint8_t)> cb);
+    std::function<void(const bitcraze::crazyflieLinkCpp::Packet&, uint8_t)> cb);
 
   bool unregisterLogBlock(
     uint8_t id);
 
   void setParam(uint16_t id, const ParamValue& value);
   void addSetParam(uint16_t id, const ParamValue& value);
-#endif
 
   const ParamValue& getParam(uint16_t id) const {
     return m_paramValues.at(id);
   }
-#if 0
 private:
+#if 0
   Crazyradio* m_radio;
   ITransport* m_transport;
   int m_devId;
@@ -515,9 +515,7 @@ private:
   Crazyradio::Datarate m_datarate;
 #endif
   std::vector<LogTocEntry> m_logTocEntries;
-#if 0
-  std::map<uint8_t, std::function<void(crtpLogDataResponse*, uint8_t)> > m_logBlockCb;
-#endif
+  std::map<uint8_t, std::function<void(const bitcraze::crazyflieLinkCpp::Packet&, uint8_t)>> m_logBlockCb;
   std::vector<ParamTocEntry> m_paramTocEntries;
   std::map<uint16_t, ParamValue> m_paramValues;
 
@@ -530,11 +528,11 @@ private:
   std::function<void(const char*)> m_consoleCallback;
 #if 0
   std::function<void(const ITransport::Ack&)> m_genericPacketCallback;
-
   template<typename T>
   friend class LogBlock;
+#endif
   friend class LogBlockGeneric;
-
+#if 0
   // batch system
   struct batchRequest
   {
@@ -694,7 +692,7 @@ private:
   std::function<void(uint32_t, T*)> m_callback;
   uint8_t m_id;
 };
-
+#endif
 ///
 
 class LogBlockGeneric
@@ -710,90 +708,48 @@ public:
     , m_callback(callback)
     , m_id(0)
   {
-    m_id = m_cf->registerLogBlock([=](crtpLogDataResponse* r, uint8_t s) { this->handleData(r, s);});
-    if (m_cf->m_log_use_V2) {
-      crtpLogCreateBlockV2Request request;
-      request.id = m_id;
-      int i = 0;
-      size_t s = 0;
-      for (auto&& var : variables) {
-        auto pos = var.find(".");
-        std::string first = var.substr(0, pos);
-        std::string second = var.substr(pos+1);
-        const Crazyflie::LogTocEntry* entry = m_cf->getLogTocEntry(first, second);
-        if (entry) {
-          s += Crazyflie::size(entry->type);
-          if (s > 26) {
-            std::stringstream sstr;
-            sstr << "Can't configure that many variables in a single log block!"
-                 << " Ignoring " << first << "." << second << std::endl;
-            throw std::runtime_error(sstr.str());
-          } else {
-            if (i < 9) {
-              request.items[i].logType = entry->type;
-              request.items[i].id = entry->id;
-              ++i;
-              m_types.push_back(entry->type);
-            } else {
-              std::stringstream sstr;
-              sstr << "Can only log up to 9 variables at a time!"
-                   << " Ignoring " << first << "." << second << std::endl;
-              throw std::runtime_error(sstr.str());
-            }
-          }
-        }
-        else {
+    m_id = m_cf->registerLogBlock([=](const bitcraze::crazyflieLinkCpp::Packet& p, uint8_t s) { this->handleData(p, s); });
+    crtpLogCreateBlockV2Request req(m_id);
+    int i = 0;
+    size_t s = 0;
+    for (auto&& var : variables) {
+      auto pos = var.find(".");
+      std::string first = var.substr(0, pos);
+      std::string second = var.substr(pos+1);
+      const Crazyflie::LogTocEntry* entry = m_cf->getLogTocEntry(first, second);
+      if (entry) {
+        s += Crazyflie::size(entry->type);
+        if (s > 26) {
           std::stringstream sstr;
-          sstr << "Could not find " << first << "." << second << " in log toc!";
+          sstr << "Can't configure that many variables in a single log block!"
+                << " Ignoring " << first << "." << second << std::endl;
           throw std::runtime_error(sstr.str());
-        }
-      }
-      m_cf->startBatchRequest();
-      m_cf->addRequestInternal(reinterpret_cast<const uint8_t*>(&request), 3 + 3*i, 2);
-      m_cf->handleRequests();
-      auto r = m_cf->getRequestResult<crtpLogControlResponse>(0);
-      if (r->result != crtpLogControlResultOk
-          && r->result != crtpLogControlResultBlockExists) {
-        throw std::runtime_error("Could not create log block!");
-      }
-    } else {
-      crtpLogCreateBlockRequest request;
-      request.id = m_id;
-      int i = 0;
-      size_t s = 0;
-      for (auto&& var : variables) {
-        auto pos = var.find(".");
-        std::string first = var.substr(0, pos);
-        std::string second = var.substr(pos+1);
-        const Crazyflie::LogTocEntry* entry = m_cf->getLogTocEntry(first, second);
-        if (entry) {
-          s += Crazyflie::size(entry->type);
-          if (s > 26) {
-            std::stringstream sstr;
-            sstr << "Can't configure that many variables in a single log block!"
-                 << " Ignoring " << first << "." << second << std::endl;
-            throw std::runtime_error(sstr.str());
-          } else {
-            request.items[i].logType = entry->type;
-            request.items[i].id = entry->id;
+        } else {
+          if (i < 9) {
+            req.add(entry->type, entry->id);
             ++i;
             m_types.push_back(entry->type);
+          } else {
+            std::stringstream sstr;
+            sstr << "Can only log up to 9 variables at a time!"
+                  << " Ignoring " << first << "." << second << std::endl;
+            throw std::runtime_error(sstr.str());
           }
         }
-        else {
-          std::stringstream sstr;
-          sstr << "Could not find " << first << "." << second << " in log toc!";
-          throw std::runtime_error(sstr.str());
-        }
       }
-      m_cf->startBatchRequest();
-      m_cf->addRequestInternal(reinterpret_cast<const uint8_t*>(&request), 3 + 2*i, 2);
-      m_cf->handleRequests();
-      auto r = m_cf->getRequestResult<crtpLogControlResponse>(0);
-      if (r->result != crtpLogControlResultOk
-          && r->result != crtpLogControlResultBlockExists) {
-        throw std::runtime_error("Could not create log block!");
+      else {
+        std::stringstream sstr;
+        sstr << "Could not find " << first << "." << second << " in log toc!";
+        throw std::runtime_error(sstr.str());
       }
+    }
+    m_cf->m_connection.send(req);
+    using res = crtpLogControlResponse;
+    auto p = m_cf->waitForResponse(&res::valid);
+    auto result = res::result(p);
+    if (result != crtpLogControlResultOk
+        && result != crtpLogControlResultBlockExists) {
+      throw std::runtime_error("Could not create log block (" + std::to_string((int)result) + ")!");
     }
   }
 
@@ -807,22 +763,29 @@ public:
   void start(uint8_t period)
   {
     crtpLogStartRequest request(m_id, period);
-    m_cf->startBatchRequest();
-    m_cf->addRequest(request, 2);
-    m_cf->handleRequests();
+    m_cf->m_connection.send(request);
+    using res = crtpLogControlResponse;
+    auto p = m_cf->waitForResponse(&res::valid);
+    auto result = res::result(p);
+    if (result != crtpLogControlResultOk)
+    {
+      throw std::runtime_error("Could not start log block!");
+    }
   }
 
   void stop()
   {
     crtpLogStopRequest request(m_id);
-    m_cf->startBatchRequest();
-    m_cf->addRequest(request, 2);
-    m_cf->handleRequests();
+    m_cf->m_connection.send(request);
+    using res = crtpLogControlResponse;
+    m_cf->waitForResponse(&res::valid);
+    /* intentionally no checking of result */
   }
 
 private:
-  void handleData(crtpLogDataResponse* response, uint8_t /*size*/) {
-
+  void handleData(const bitcraze::crazyflieLinkCpp::Packet &p, uint8_t /*size*/)
+  {
+    using res = crtpLogDataResponse;
     std::vector<double> result;
     size_t pos = 0;
     for (size_t i = 0; i < m_types.size(); ++i)
@@ -831,72 +794,63 @@ private:
       {
       case Crazyflie::LogTypeUint8:
         {
-          uint8_t value;
-          memcpy(&value, &response->data[pos], sizeof(uint8_t));
+          uint8_t value = res::variableAt<uint8_t>(p, pos);
           result.push_back(value);
           pos += sizeof(uint8_t);
           break;
         }
       case Crazyflie::LogTypeInt8:
         {
-          int8_t value;
-          memcpy(&value, &response->data[pos], sizeof(int8_t));
+          int8_t value = res::variableAt<int8_t>(p, pos);
           result.push_back(value);
           pos += sizeof(int8_t);
           break;
         }
       case Crazyflie::LogTypeUint16:
         {
-          uint16_t value;
-          memcpy(&value, &response->data[pos], sizeof(uint16_t));
+          uint16_t value = res::variableAt<uint16_t>(p, pos);
           result.push_back(value);
           pos += sizeof(uint16_t);
           break;
         }
       case Crazyflie::LogTypeInt16:
         {
-          int16_t value;
-          memcpy(&value, &response->data[pos], sizeof(int16_t));
+          int16_t value = res::variableAt<int16_t>(p, pos);
           result.push_back(value);
           pos += sizeof(int16_t);
           break;
         }
       case Crazyflie::LogTypeUint32:
         {
-          uint32_t value;
-          memcpy(&value, &response->data[pos], sizeof(uint32_t));
+          uint32_t value = res::variableAt<uint32_t>(p, pos);
           result.push_back(value);
           pos += sizeof(uint32_t);
           break;
         }
       case Crazyflie::LogTypeInt32:
         {
-          int32_t value;
-          memcpy(&value, &response->data[pos], sizeof(int32_t));
+          int32_t value = res::variableAt<int32_t>(p, pos);
           result.push_back(value);
           pos += sizeof(int32_t);
           break;
         }
       case Crazyflie::LogTypeFloat:
         {
-          float value;
-          memcpy(&value, &response->data[pos], sizeof(float));
+          float value = res::variableAt<float>(p, pos);
           result.push_back(value);
           pos += sizeof(float);
           break;
         }
       case Crazyflie::LogTypeFP16:
         {
-          double value;
-          memcpy(&value, &response->data[pos], sizeof(double));
-          result.push_back(value);
-          pos += sizeof(double);
+          /* TODO: not yet supported */
+          pos += 2;
           break;
         }
       }
     }
 
-    uint32_t time_in_ms = ((uint32_t)response->timestampHi << 8) | (response->timestampLo);
+    uint32_t time_in_ms = res::timestampMS(p);
     m_callback(time_in_ms, &result, m_userData);
   }
 
@@ -907,7 +861,7 @@ private:
   uint8_t m_id;
   std::vector<Crazyflie::LogType> m_types;
 };
-
+#if 0
 ///
 
 class CrazyflieBroadcaster

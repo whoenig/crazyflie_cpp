@@ -901,7 +901,16 @@ bitcraze::crazyflieLinkCpp::Packet Crazyflie::waitForResponse(
       if (m_consoleCallback) {
         m_consoleCallback(crtpConsoleResponse::text(p).c_str());
       }
+    } else if (crtpLogDataResponse::valid(p)) {
+      uint8_t blockId = crtpLogDataResponse::blockId(p);
+      auto iter = m_logBlockCb.find(blockId);
+      if (iter != m_logBlockCb.end()) {
+        iter->second(p, p.size() - 5);
+      } else {
+        m_logger.warning("Received unrequested data for block: " + std::to_string((int)blockId));
+      }
     }
+
     if (condition(p)) {
       return p;
     }
@@ -1097,7 +1106,7 @@ void Crazyflie::handleAck(
     }
   }
 }
-
+#endif
 const Crazyflie::LogTocEntry* Crazyflie::getLogTocEntry(
   const std::string& group,
   const std::string& name) const
@@ -1109,7 +1118,7 @@ const Crazyflie::LogTocEntry* Crazyflie::getLogTocEntry(
   }
   return nullptr;
 }
-
+#if 0
 const Crazyflie::ParamTocEntry* Crazyflie::getParamTocEntry(
   const std::string& group,
   const std::string& name) const
@@ -1121,9 +1130,9 @@ const Crazyflie::ParamTocEntry* Crazyflie::getParamTocEntry(
   }
   return nullptr;
 }
-
+#endif
 uint8_t Crazyflie::registerLogBlock(
-  std::function<void(crtpLogDataResponse*, uint8_t)> cb)
+  std::function<void(const bitcraze::crazyflieLinkCpp::Packet&, uint8_t)> cb)
 {
   for (uint8_t id = 0; id < 255; ++id) {
     if (m_logBlockCb.find(id) == m_logBlockCb.end()) {
@@ -1140,7 +1149,7 @@ bool Crazyflie::unregisterLogBlock(
   m_logBlockCb.erase(m_logBlockCb.find(id));
   return true;
 }
-
+#if 0
 // Batch system
 
 void Crazyflie::startBatchRequest()
