@@ -10,6 +10,7 @@
 #include <set>
 #include <map>
 #include <chrono>
+#include <cassert>
 
 #include <crazyflieLinkCpp/Connection.h>
 
@@ -231,34 +232,33 @@ public:
     memcpy(&v, &value, sizeof(value));
     setParam(id, v);
   }
-
+#endif
   template<class T>
-  void setParamByName(const char* group, const char* name, const T& value) {
+  void setParamByName(const std::string& group, const std::string& name, const T& value) {
     crtpParamSetByNameRequest<T> request(group, name, value);
-    // sendPacketOrTimeoutInternal(reinterpret_cast<const uint8_t*>(&request), request.size());
-    startBatchRequest();
-    addRequestInternal(
-      reinterpret_cast<const uint8_t*>(&request), request.size(), request.responseSize() - 1);
-    handleRequests();
-    auto response = getRequestResult<crtpParamSetByNameResponse>(0);
+    m_connection.send(request);
+    using res = crtpParamSetByNameResponse;
+    auto p = waitForResponse(&res::valid);
 
-    uint8_t error = response->error(request.responseSize());
+    assert( (res::groupAndName(p) == std::make_pair(group, name)) );
+
+    uint8_t error = res::error(p);
     if (error != 0) {
       std::stringstream sstr;
       sstr << "Couldn't set parameter " << group << "." << name << "!";
       if (error == ENOENT) {
-        sstr << "No such variable." << std::endl;
+        sstr << " No such variable." << std::endl;
       } else if (error == EINVAL) {
-        sstr << "Wrong type." << std::endl;
+        sstr << " Wrong type." << std::endl;
       } else if (error == EACCES) {
-        sstr << "Variable is readonly." << std::endl;
+        sstr << " Variable is readonly." << std::endl;
       } else {
         sstr << " Error: " << (int)error << std::endl;
       }
       throw std::runtime_error(sstr.str());
     }
   }
-
+#if 0
   void startSetParamRequest();
 
   template<class T>

@@ -132,6 +132,61 @@ struct crtpParamValueV2Response
   }
 };
 
+// Set the current value of a parameter
+template <class T>
+class crtpParamSetByNameRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
+{
+public:
+  crtpParamSetByNameRequest(
+      const std::string& group,
+      const std::string& name,
+      const T &value)
+      : Packet(2, 3, 1+group.size()+1+name.size()+1+1+sizeof(T))
+  {
+    setPayloadAt<uint8_t>(0, 0); // command
+    size_t idx = 1;
+    setPayloadAtString(idx, group); // group
+    idx += group.size() + 1;
+    setPayloadAtString(idx, name);  // name
+    idx += name.size() + 1;
+    setPayloadAt<uint8_t>(idx, deductParamType(value)); // type
+    setPayloadAt<T>(idx+1, value);  // value
+  }
+
+private:
+  ParamType deductParamType(const uint8_t&) { return ParamTypeUint8;}
+  ParamType deductParamType(const int8_t&) { return ParamTypeInt8;}
+  ParamType deductParamType(const uint16_t&) { return ParamTypeUint16;}
+  ParamType deductParamType(const int16_t&) { return ParamTypeInt16;}
+  ParamType deductParamType(const uint32_t&) { return ParamTypeUint32;}
+  ParamType deductParamType(const int32_t&) { return ParamTypeInt32;}
+  ParamType deductParamType(const float&) { return ParamTypeFloat;}
+};
+
+struct crtpParamSetByNameResponse
+{
+  static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.port() == 2 &&
+           p.channel() == 3 &&
+           p.payloadSize() >= 2 &&
+           p.payloadAt<uint8_t>(0) == 0;
+  }
+
+  static std::pair<std::string, std::string> groupAndName(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    auto group = p.payloadAtString(1);
+    auto name = p.payloadAtString(1 + group.length() + 1);
+    return std::make_pair(group, name);
+  }
+
+  static uint8_t error(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.payloadAt<uint8_t>(p.payloadSize()-1);
+  }
+};
+
 #if 0
 struct crtpParamValueV2Response;
 struct crtpParamReadV2Request
