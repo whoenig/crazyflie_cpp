@@ -180,16 +180,16 @@ public:
     float qx, float qy, float qz, float qw);
 #endif
   void sendPing();
-#if 0
   void reboot();
+#if 0
   // returns new address
   uint64_t rebootToBootloader();
-
   void rebootFromBootloader();
-
+#endif
   void sysoff();
   void alloff();
   void syson();
+#if 0
   float vbat();
 
   void writeFlash(

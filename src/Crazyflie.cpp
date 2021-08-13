@@ -193,19 +193,33 @@ void Crazyflie::transmitPackets()
     m_outgoing_packets.clear();
   }
 }
-
+#endif
 // https://forum.bitcraze.io/viewtopic.php?f=9&t=1488
 void Crazyflie::reboot()
 {
-  if (m_radio) {
-    crtpNrf51ResetInitRequest req1;
-    sendPacketOrTimeout(req1);
+  // m_connection.close();
+  // bitcraze::crazyflieLinkCpp::Connection m_connectionBootloader("radio://0/80/2M/E7E7E7E7E7?safelink=0&autoping=0&ackfilter=0");
 
-    crtpNrf51ResetRequest req2(/*bootToFirmware*/ 1);
-    sendPacketOrTimeout(req2);
-  }
+  crtpNrf51ResetInitRequest req1;
+  m_connection.send(req1);
+  crtpNrf51ResetRequest req2(/*bootToFirmware*/ 1);
+  m_connection.send(req2);
+
+  while (m_connection.statistics().enqueued_count > 0)
+    ;
+
+  // while(true) {
+  //   std::cout << m_connectionBootloader.recv(0) << std::endl;
+  // }
+
+  // crtpNrf51ResetInitRequest req1;
+  // m_connection.send(req1);
+
+  // while(true) {
+  //   std::cout << m_connection.recv(0) << std::endl;
+  // }
 }
-
+#if 0
 uint64_t Crazyflie::rebootToBootloader()
 {
   if (m_radio) {
@@ -244,31 +258,43 @@ void Crazyflie::rebootFromBootloader()
     sendPacketOrTimeout(req, /*useSafeLink*/ false);
   }
 }
-
+#endif
 void Crazyflie::sysoff()
 {
-  if (m_radio) {
-    crtpNrf51SysOffRequest req;
-    sendPacketOrTimeout(req);
-  }
+  // m_connection.close();
+  // bitcraze::crazyflieLinkCpp::Connection m_connectionBootloader("radio://0/80/2M/E7E7E7E7E7?safelink=0&autoping=0&ackfilter=0");
+  crtpNrf51SysOffRequest req;
+  m_connection.send(req);
+
+  while (m_connection.statistics().enqueued_count > 0)
+    ;
+  // while (true)
+  // {
+  //   std::cout << m_connection.statistics() << m_connection.recv(0) << std::endl;
+  // }
 }
 
 void Crazyflie::alloff()
 {
-  if (m_radio) {
-    crtpNrf51AllOffRequest req;
-    sendPacketOrTimeout(req);
-  }
+  crtpNrf51AllOffRequest req;
+  m_connection.send(req);
+
+  while (m_connection.statistics().enqueued_count > 0)
+    ;
 }
 
 void Crazyflie::syson()
 {
-  if (m_radio) {
-    crtpNrf51SysOnRequest req;
-    sendPacketOrTimeout(req);
-  }
-}
+  crtpNrf51SysOnRequest req;
+  m_connection.send(req);
 
+  while (m_connection.statistics().enqueued_count > 0) ;
+  // while (true)
+  // {
+  //   std::cout << m_connection.statistics() << m_connection.recv(0) << std::endl;
+  // }
+}
+#if 0
 float Crazyflie::vbat()
 {
   if (m_radio) {

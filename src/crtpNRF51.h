@@ -1,4 +1,8 @@
 #pragma once
+
+#include <crazyflieLinkCpp/Packet.hpp>
+
+#if 0
 #include <cstdint>
 
 // Header
@@ -17,9 +21,104 @@ struct crtpNrf51Header
   uint8_t target;
   uint8_t cmd;
 } __attribute__((packed));
-
+#endif
 // RESET_INIT
 
+class crtpNrf51ResetInitRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
+{
+public:
+  crtpNrf51ResetInitRequest()
+      : Packet(0xF, 0x3, 2)
+  {
+    setPayloadAt<uint8_t>(0, 0xFE); // target
+    setPayloadAt<uint8_t>(1, 0xFF); // cmd
+  }
+};
+
+struct crtpNrf51ResetInitResponse
+{
+  static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.port() == 0xF &&
+           p.channel() == 0x3 &&
+           p.payloadSize() == 8 &&
+           p.payloadAt<uint8_t>(0) == 0xFE &&
+           p.payloadAt<uint8_t>(1) == 0xFF;
+  }
+
+  static uint64_t address(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.payloadAt<uint64_t>(2);
+  }
+};
+
+// RESET
+
+class crtpNrf51ResetRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
+{
+public:
+  crtpNrf51ResetRequest(uint8_t bootToFirmware)
+      : Packet(0xF, 0x3, 3)
+  {
+    setPayloadAt<uint8_t>(0, 0xFE); // target
+    setPayloadAt<uint8_t>(1, 0xF0); // cmd
+    setPayloadAt<uint8_t>(2, bootToFirmware); //0=boot to bootloader; otherwise: boot to firmware
+  }
+};
+
+/* no response sent */
+
+// ALLOFF
+
+class crtpNrf51AllOffRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
+{
+public:
+  crtpNrf51AllOffRequest()
+      : Packet(0xF, 0x3, 2)
+  {
+    setPayloadAt<uint8_t>(0, 0xFE); // target
+    setPayloadAt<uint8_t>(1, 0x01); // cmd
+  }
+};
+
+/* no response sent */
+
+// SYSOFF
+
+class crtpNrf51SysOffRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
+{
+public:
+  crtpNrf51SysOffRequest()
+      : Packet(0xF, 0x3, 2)
+  {
+    setPayloadAt<uint8_t>(0, 0xFE);           // target
+    setPayloadAt<uint8_t>(1, 0x02);           // cmd
+  }
+};
+
+/* no response sent */
+
+// SYSON
+
+class crtpNrf51SysOnRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
+{
+public:
+  crtpNrf51SysOnRequest()
+      : Packet(0xF, 0x3, 2)
+  {
+    setPayloadAt<uint8_t>(0, 0xFE); // target
+    setPayloadAt<uint8_t>(1, 0x03); // cmd
+  }
+};
+
+/* no response sent */
+
+#if 0
 struct crtpNrf51ResetInitRequest
 {
   crtpNrf51ResetInitRequest()
@@ -128,3 +227,4 @@ struct crtpNrf51SetSafelinkRequest
   const uint8_t header2 = 0x05;
   uint8_t hasSafelink;
 } __attribute__((packed));
+#endif
