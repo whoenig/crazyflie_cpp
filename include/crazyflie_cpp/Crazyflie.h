@@ -131,9 +131,9 @@ public:
   std::string getFirmwareVersion();
 
   std::string getDeviceTypeName();
-#if 0
   void logReset();
 
+#if 0
   void sendSetpoint(
     float roll,
     float pitch,
@@ -189,9 +189,9 @@ public:
   void sysoff();
   void alloff();
   void syson();
-#if 0
   float vbat();
 
+#if 0
   void writeFlash(
     BootloaderTarget target,
     const std::vector<uint8_t>& data);
@@ -528,9 +528,9 @@ private:
   std::function<void(const char*)> m_consoleCallback;
 #if 0
   std::function<void(const ITransport::Ack&)> m_genericPacketCallback;
+#endif
   template<typename T>
   friend class LogBlock;
-#endif
   friend class LogBlockGeneric;
 #if 0
   // batch system
@@ -557,7 +557,6 @@ private:
   bitcraze::crazyflieLinkCpp::Connection m_connection;
 };
 
-#if 0
 template<class T>
 class LogBlock
 {
@@ -565,88 +564,39 @@ public:
   LogBlock(
     Crazyflie* cf,
     std::list<std::pair<std::string, std::string> > variables,
-    std::function<void(uint32_t, T*)>& callback)
+    std::function<void(uint32_t, const T*)>& callback)
     : m_cf(cf)
     , m_callback(callback)
     , m_id(0)
   {
-    m_id = m_cf->registerLogBlock([=](crtpLogDataResponse* r, uint8_t s) { this->handleData(r, s);});
-    if (m_cf->m_log_use_V2) {
-      std::vector<logBlockItemV2> logBlockItems;
-      size_t s = 0;
-      for (auto&& pair : variables) {
-        const Crazyflie::LogTocEntry* entry = m_cf->getLogTocEntry(pair.first, pair.second);
-        if (entry) {
-          s += Crazyflie::size(entry->type);
-          if (s > 26) {
-            std::stringstream sstr;
-            sstr << "Can't configure that many variables in a single log block!"
-                 << " Ignoring " << pair.first << "." << pair.second << std::endl;
-            throw std::runtime_error(sstr.str());
-          } else {
-            logBlockItems.push_back({static_cast<uint8_t>(entry->type), entry->id});
-          }
-        }
-        else {
+    m_id = m_cf->registerLogBlock([=](const bitcraze::crazyflieLinkCpp::Packet& p, uint8_t s) { this->handleData(p, s); });
+    crtpLogCreateBlockV2Request req(m_id);
+    size_t s = 0;
+    for (auto&& pair : variables) {
+      const Crazyflie::LogTocEntry* entry = m_cf->getLogTocEntry(pair.first, pair.second);
+      if (entry) {
+        s += Crazyflie::size(entry->type);
+        if (s > 26) {
           std::stringstream sstr;
-          sstr << "Could not find " << pair.first << "." << pair.second << " in log toc!";
+          sstr << "Can't configure that many variables in a single log block!"
+                << " Ignoring " << pair.first << "." << pair.second << std::endl;
           throw std::runtime_error(sstr.str());
-        }
-      }
-
-      // we can use up to 9 items per request
-      size_t requests = ceil(logBlockItems.size() / 9.0f);
-      size_t i = 0;
-      for (size_t r = 0; r < requests; ++r) {
-        size_t numElements = std::min<size_t>(logBlockItems.size() - i, 9);
-        if (r == 0) {
-          crtpLogCreateBlockV2Request request;
-          request.id = m_id;
-          memcpy(request.items, &logBlockItems[i], sizeof(logBlockItemV2) * numElements);
-          m_cf->sendPacketOrTimeoutInternal(reinterpret_cast<const uint8_t*>(&request), 3 + 3*numElements);
         } else {
-          crtpLogAppendBlockV2Request request;
-          request.id = m_id;
-          memcpy(request.items, &logBlockItems[i], sizeof(logBlockItemV2) * numElements);
-          m_cf->sendPacketOrTimeoutInternal(reinterpret_cast<const uint8_t*>(&request), 3 + 3*numElements);
+          req.add(entry->type, entry->id);
         }
-        i += numElements;
-      }
-      // auto r = m_cf->getRequestResult<crtpLogControlResponse>(0);
-      // if (r->result != crtpLogControlResultOk
-      //     && r->result != crtpLogControlResultBlockExists) {
-      //   std::stringstream sstr;
-      //   sstr << "Could not create log block! Result: " << (int)r->result << " " << (int)m_id << " " << (int)r->requestByte1 << " " << (int)r->command;
-      //   throw std::runtime_error(sstr.str());
-      // }
-    } else {
-      crtpLogCreateBlockRequest request;
-      request.id = m_id;
-      int i = 0;
-      for (auto&& pair : variables) {
-        const Crazyflie::LogTocEntry* entry = m_cf->getLogTocEntry(pair.first, pair.second);
-        if (entry) {
-          request.items[i].logType = entry->type;
-          request.items[i].id = entry->id;
-          ++i;
-        }
-        else {
-          std::stringstream sstr;
-          sstr << "Could not find " << pair.first << "." << pair.second << " in log toc!";
-          throw std::runtime_error(sstr.str());
-        }
-      }
-
-      m_cf->startBatchRequest();
-      m_cf->addRequestInternal(reinterpret_cast<const uint8_t*>(&request), 3 + 2*i, 2);
-      m_cf->handleRequests();
-      auto r = m_cf->getRequestResult<crtpLogControlResponse>(0);
-      if (r->result != crtpLogControlResultOk
-          && r->result != crtpLogControlResultBlockExists) {
+      } else {
         std::stringstream sstr;
-        sstr << "Could not create log block! Result: " << (int)r->result << " " << (int)m_id << " " << (int)r->requestByte1 << " " << (int)r->command;
+        sstr << "Could not find " << pair.first << "." << pair.second << " in log toc!";
         throw std::runtime_error(sstr.str());
       }
+    }
+    m_cf->m_connection.send(req);
+    using res = crtpLogControlResponse;
+    auto p = m_cf->waitForResponse(&res::valid);
+    auto result = res::result(p);
+    if (result != crtpLogControlResultOk && result != crtpLogControlResultBlockExists)
+    {
+      throw std::runtime_error("Could not create log block (" + std::to_string((int)result) + ")!");
     }
   }
 
@@ -656,31 +606,37 @@ public:
     m_cf->unregisterLogBlock(m_id);
   }
 
-
   void start(uint8_t period)
   {
     crtpLogStartRequest request(m_id, period);
-    m_cf->startBatchRequest();
-    m_cf->addRequest(request, 2);
-    m_cf->handleRequests();
+    m_cf->m_connection.send(request);
+    using res = crtpLogControlResponse;
+    auto p = m_cf->waitForResponse(&res::valid);
+    auto result = res::result(p);
+    if (result != crtpLogControlResultOk)
+    {
+      throw std::runtime_error("Could not start log block!");
+    }
   }
 
   void stop()
   {
     crtpLogStopRequest request(m_id);
-    m_cf->startBatchRequest();
-    m_cf->addRequest(request, 2);
-    m_cf->handleRequests();
+    m_cf->m_connection.send(request);
+    using res = crtpLogControlResponse;
+    m_cf->waitForResponse(&res::valid);
+    /* intentionally no checking of result */
   }
 
 private:
-  void handleData(crtpLogDataResponse* response, uint8_t size) {
+  void handleData(const bitcraze::crazyflieLinkCpp::Packet &p, uint8_t size)
+  {
+    using res = crtpLogDataResponse;
     if (size == sizeof(T)) {
-      uint32_t time_in_ms = ((uint32_t)response->timestampHi << 8) | (response->timestampLo);
-      T* t = (T*)response->data;
+      uint32_t time_in_ms = res::timestampMS(p);
+      const T* t = reinterpret_cast<const T*>(&p.payload()[4]);
       m_callback(time_in_ms, t);
-    }
-    else {
+    } else {
       std::stringstream sstr;
       sstr << "Size doesn't match! Is: " << (size_t)size << " expected: " << sizeof(T);
       throw std::runtime_error(sstr.str());
@@ -689,10 +645,9 @@ private:
 
 private:
   Crazyflie* m_cf;
-  std::function<void(uint32_t, T*)> m_callback;
+  std::function<void(uint32_t, const T*)> m_callback;
   uint8_t m_id;
 };
-#endif
 ///
 
 class LogBlockGeneric

@@ -118,6 +118,37 @@ public:
 
 /* no response sent */
 
+// GETVBAT
+
+class crtpNrf51GetVBatRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
+{
+public:
+  crtpNrf51GetVBatRequest()
+      : Packet(0xF, 0x3, 2)
+  {
+    setPayloadAt<uint8_t>(0, 0xFE); // target
+    setPayloadAt<uint8_t>(1, 0x04); // cmd
+  }
+};
+
+struct crtpNrf51GetVBatResponse
+{
+  static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.port() == 0xF &&
+           p.channel() == 0x3 &&
+           p.payloadSize() == 6 &&
+           p.payloadAt<uint8_t>(0) == 0xFE &&
+           p.payloadAt<uint8_t>(1) == 0x04;
+  }
+
+  static float vbat(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.payloadAt<float>(2);
+  }
+};
+
 #if 0
 struct crtpNrf51ResetInitRequest
 {

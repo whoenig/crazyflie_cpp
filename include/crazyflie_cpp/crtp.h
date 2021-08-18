@@ -546,36 +546,17 @@ public:
   }
 };
 
-#if 0
-struct crtpLogStopRequest
+class crtpLogResetRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
-  crtpLogStopRequest(
-    uint8_t id)
-    : header(5, 1)
-    , command(4)
-    , id(id)
-    {
-    }
-
-    const crtp header;
-    const uint8_t command;
-    uint8_t id;
-} __attribute__((packed));
-CHECKSIZE(crtpLogStopRequest)
-
-struct crtpLogResetRequest
-{
+public:
   crtpLogResetRequest()
-    : header(5, 1)
-    , command(5)
-    {
-    }
+      : Packet(5, 1, 1)
+  {
+    setPayloadAt<uint8_t>(0, 5);  // command
+  }
+};
 
-    const crtp header;
-    const uint8_t command;
-} __attribute__((packed));
-CHECKSIZE(crtpLogResetRequest)
-#endif
 enum crtpLogControlResult : uint8_t {
   crtpLogControlResultOk            = 0,
   crtpLogControlResultOutOfMemory   = 12, // ENOMEM

@@ -69,14 +69,19 @@ std::string Crazyflie::getDeviceTypeName()
   return res::name(p);
 }
 
-#if 0
 void Crazyflie::logReset()
 {
   crtpLogResetRequest request;
-  startBatchRequest();
-  addRequest(request, 1);
-  handleRequests();
+  m_connection.send(request);
+  using res = crtpLogControlResponse;
+  auto p = waitForResponse(&res::valid);
+  auto result = res::result(p);
+  if (result != crtpLogControlResultOk)
+  {
+    throw std::runtime_error("Could not start log block!");
+  }
 }
+#if 0
 
 void Crazyflie::sendSetpoint(
   float roll,
@@ -294,20 +299,17 @@ void Crazyflie::syson()
   //   std::cout << m_connection.statistics() << m_connection.recv(0) << std::endl;
   // }
 }
-#if 0
+
 float Crazyflie::vbat()
 {
-  if (m_radio) {
-    crtpNrf51GetVBatRequest req;
-    startBatchRequest();
-    addRequest(req, 2);
-    handleRequests();
-    return getRequestResult<crtpNrf51GetVBatResponse>(0)->vbat;
-  } else {
-    return nan("");
-  }
+  crtpNrf51GetVBatRequest req;
+  m_connection.send(req);
+  using res = crtpNrf51GetVBatResponse;
+  auto p = waitForResponse(&res::valid);
+  return res::vbat(p);
 }
 
+#if 0
 void Crazyflie::writeFlash(
   BootloaderTarget target,
   const std::vector<uint8_t>& data)
