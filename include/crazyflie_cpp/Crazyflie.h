@@ -109,12 +109,11 @@ public:
     uint32_t size;
     uint64_t addr;
   };
-#if 0
+
   struct poly4d {
     float p[4][8];
     float duration;
   } __attribute__((packed));
-#endif
 
 public:
   Crazyflie(
@@ -133,7 +132,6 @@ public:
   std::string getDeviceTypeName();
   void logReset();
 
-#if 0
   void sendSetpoint(
     float roll,
     float pitch,
@@ -178,7 +176,7 @@ public:
   void sendExternalPoseUpdate(
     float x, float y, float z,
     float qx, float qy, float qz, float qw);
-#endif
+
   void sendPing();
   void reboot();
 #if 0
@@ -225,14 +223,13 @@ public:
     return m_memoryTocEntries.end();
   }
 
-#if 0
   template<class T>
   void setParam(uint16_t id, const T& value) {
     ParamValue v;
     memcpy(&v, &value, sizeof(value));
     setParam(id, v);
   }
-#endif
+
   template<class T>
   void setParamByName(const std::string& group, const std::string& name, const T& value) {
     crtpParamSetByNameRequest<T> request(group, name, value);
@@ -258,29 +255,18 @@ public:
       throw std::runtime_error(sstr.str());
     }
   }
-#if 0
-  void startSetParamRequest();
-
-  template<class T>
-  void addSetParam(uint16_t id, const T& value) {
-    ParamValue v;
-    memcpy(&v, &value, sizeof(value));
-    addSetParam(id, v);
-  }
-
-  void setRequestedParams();
-#endif
 
   template<class T>
   T getParam(uint16_t id) const {
     ParamValue v = getParam(id);
     return *(reinterpret_cast<T*>(&v));
   }
-#if 0
+
   const ParamTocEntry* getParamTocEntry(
     const std::string& group,
     const std::string& name) const;
 
+#if 0
   void setEmptyAckCallback(
     std::function<void(const crtpPlatformRSSIAck*)> cb) {
     m_emptyAckCallback = cb;
@@ -333,10 +319,10 @@ public:
   }
 
   void transmitPackets();
+#endif
 
   // High-Level setpoints
   void setGroupMask(uint8_t groupMask);
-
   void takeoff(float height, float duration, uint8_t groupMask = 0);
 
   void land(float height, float duration, uint8_t groupMask = 0);
@@ -356,7 +342,7 @@ public:
     bool reversed = false,
     bool relative = true,
     uint8_t groupMask = 0);
-
+#if 0
   // Memory subsystem
   void readUSDLogFile(
     std::vector<uint8_t>& data);
@@ -366,87 +352,7 @@ private:
       std::function<bool(const bitcraze::crazyflieLinkCpp::Packet&)> condition);
 
 #if 0
-  void sendPacketInternal(
-    const uint8_t* data,
-    uint32_t length,
-    ITransport::Ack& result,
-    bool useSafeLink = ENABLE_SAFELINK);
-
-  template<typename R>
-  void sendPacket(
-    const R& request,
-    ITransport::Ack& result,
-    bool useSafeLink = ENABLE_SAFELINK)
-  {
-    sendPacketInternal(
-      reinterpret_cast<const uint8_t*>(&request), sizeof(request), result, useSafeLink);
-  }
-
-  bool sendPacketInternal(
-    const uint8_t* data,
-    uint32_t length,
-    bool useSafeLink = ENABLE_SAFELINK);
-
-  template<typename R>
-  void sendPacket(
-    const R& request,
-    bool useSafeLink = ENABLE_SAFELINK)
-  {
-    sendPacketInternal(
-      reinterpret_cast<const uint8_t*>(&request), sizeof(request), useSafeLink);
-  }
-
- void sendPacketOrTimeoutInternal(
-   const uint8_t* data,
-   uint32_t length,
-   bool useSafeLink = ENABLE_SAFELINK,
-   float timeout = 1.0);
-
-  template<typename R>
-  void sendPacketOrTimeout(
-    const R& request,
-    bool useSafeLink = ENABLE_SAFELINK)
-  {
-    sendPacketOrTimeoutInternal(
-      reinterpret_cast<const uint8_t*>(&request), sizeof(request), useSafeLink);
-  }
-
-  void handleAck(
-    const ITransport::Ack& result);
-
   std::vector<crtpPacket_t> m_outgoing_packets;
-
-  void startBatchRequest();
-
-  void addRequestInternal(
-    const uint8_t* data,
-    size_t numBytes,
-    size_t numBytesToMatch);
-
-  template<typename R>
-  void addRequest(
-    const R& request,
-    size_t numBytesToMatch)
-  {
-    addRequestInternal(
-      reinterpret_cast<const uint8_t*>(&request), sizeof(request), numBytesToMatch);
-  }
-
-  void handleRequests(
-    bool crtpMode = true,
-    bool useSafeLink = ENABLE_SAFELINK,
-    float baseTime = 2.0,
-    float timePerRequest = 0.2);
-
-
-  void handleBatchAck(
-    const ITransport::Ack& result,
-    bool crtpMode);
-
-  template<typename R>
-  const R* getRequestResult(size_t index) const {
-    return reinterpret_cast<const R*>(m_batchRequests[index].ack.data);
-  }
 
 private:
   struct logInfo {
@@ -505,15 +411,6 @@ private:
     return m_paramValues.at(id);
   }
 private:
-#if 0
-  Crazyradio* m_radio;
-  ITransport* m_transport;
-  int m_devId;
-
-  uint8_t m_channel;
-  uint64_t m_address;
-  Crazyradio::Datarate m_datarate;
-#endif
   std::vector<LogTocEntry> m_logTocEntries;
   std::map<uint8_t, std::function<void(const bitcraze::crazyflieLinkCpp::Packet&, uint8_t)>> m_logBlockCb;
   std::vector<ParamTocEntry> m_paramTocEntries;
@@ -532,24 +429,7 @@ private:
   template<typename T>
   friend class LogBlock;
   friend class LogBlockGeneric;
-#if 0
-  // batch system
-  struct batchRequest
-  {
-    std::vector<uint8_t> request;
-    size_t numBytesToMatch;
-    ITransport::Ack ack;
-    bool finished;
-  };
-  std::vector<batchRequest> m_batchRequests;
-  size_t m_numRequestsFinished;
-  size_t m_numRequestsEnqueued;
 
-  int m_curr_up;
-  int m_curr_down;
-
-  bool m_log_use_V2;
-#endif
   int m_protocolVersion;
   // logging
   Logger& m_logger;
@@ -816,7 +696,6 @@ private:
   uint8_t m_id;
   std::vector<Crazyflie::LogType> m_types;
 };
-#if 0
 ///
 
 class CrazyflieBroadcaster
@@ -878,31 +757,10 @@ public:
     const char* name,
     const T& value)
   {
-    crtpParamSetByNameRequest<T> request(group, name, value);
-    sendPacket(reinterpret_cast<const uint8_t*>(&request), request.size());
+    crtpParamSetByNameRequest<T> req(group, name, value);
+    m_connection.send(req);
   }
 
-protected:
-  void sendPacket(
-    const uint8_t* data,
-    uint32_t length);
-
-  void send2Packets(
-    const uint8_t* data,
-    uint32_t length);
-
-  // void setParam(
-  //   uint8_t group,
-  //   uint8_t id,
-  //   Crazyflie::ParamType type,
-  //   const Crazyflie::ParamValue& value);
-
 private:
-  Crazyradio* m_radio;
-  int m_devId;
-
-  uint8_t m_channel;
-  uint64_t m_address;
-  Crazyradio::Datarate m_datarate;
+  bitcraze::crazyflieLinkCpp::Connection m_connection;
 };
-#endif

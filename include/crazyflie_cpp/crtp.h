@@ -11,9 +11,10 @@ static int const CRTP_MAXSIZE = 31;
 
 static int const CRTP_MAXSIZE_RESPONSE = 32;
 #define CHECKSIZE_RESPONSE(s) static_assert(sizeof(s) <= CRTP_MAXSIZE_RESPONSE, #s " packet is too large");
-
+#endif
+uint32_t quatcompress(float const q[4]);
 void quatdecompress(uint32_t comp, float q[4]);
-
+#if 0
 // Header
 struct crtp
 {
@@ -187,144 +188,41 @@ struct crtpParamSetByNameResponse
   }
 };
 
-#if 0
-struct crtpParamValueV2Response;
-struct crtpParamReadV2Request
-{
-  crtpParamReadV2Request(
-    uint16_t id)
-    : header(2, 1)
-    , id(id)
-  {
-  }
-
-  bool operator==(const crtpParamReadV2Request& other) const {
-    return header == other.header && id == other.id;
-  }
-
-  typedef crtpParamValueV2Response Response;
-
-  const crtp header;
-  const uint16_t id;
-} __attribute__((packed));
-CHECKSIZE(crtpParamReadV2Request)
-
 template <class T>
-struct crtpParamWriteV2Request
+class crtpParamWriteV2Request
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
+public:
   crtpParamWriteV2Request(
-    uint16_t id,
-    const T& value)
-    : header(2, 2)
-    , id(id)
-    , value(value)
-    {
-    }
-
-    const crtp header;
-    const uint16_t id;
-    const T value;
-} __attribute__((packed));
-CHECKSIZE(crtpParamWriteV2Request<float>) // largest kind of param
-
-struct crtpParamValueV2Response
-{
-  static bool match(const Crazyradio::Ack& response) {
-    return response.size > 2 &&
-           (crtp(response.data[0]) == crtp(2, 1) ||
-            crtp(response.data[0]) == crtp(2, 2));
+      uint16_t id,
+      const T &value)
+      : Packet(2, 2, 2 + sizeof(T))
+  {
+    setPayloadAt<uint16_t>(0, id);
+    setPayloadAt<T>(2, value);
   }
-
-  crtpParamReadV2Request request;
-  uint8_t status; // 0 = success
-  union {
-    uint8_t valueUint8;
-    int8_t valueInt8;
-    uint16_t valueUint16;
-    int16_t valueInt16;
-    uint32_t valueUint32;
-    int32_t valueInt32;
-    float valueFloat;
-  };
-} __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpParamValueV2Response)
-
-template <class T>
-struct crtpParamSetByNameRequest
-{
-  crtpParamSetByNameRequest(
-    const char* group,
-    const char* name,
-    const T& value);
-
-    const crtp header;
-    const uint8_t cmd = 0;
-    uint8_t data[29];
-
-  uint8_t size() const {
-    return size_;
-  }
-
-  uint8_t responseSize() const {
-    return responseSize_;
-  }
-
-private:
-    // member state (not part of packet)
-    uint8_t size_;
-    uint8_t responseSize_;
-
-private:
-  crtpParamSetByNameRequest(
-    const char* group,
-    const char* name,
-    uint8_t paramType,
-    const void* value,
-    uint8_t valueSize);
-} __attribute__((packed));
-CHECKSIZE_WITH_STATE(crtpParamSetByNameRequest<float>, 2) // largest kind of param
-
-struct crtpParamSetByNameResponse
-{
-  static bool match(const Crazyradio::Ack& response) {
-    return response.size > 2 &&
-           (crtp(response.data[0]) == crtp(2, 3));
-  }
-
-  uint8_t data[32];
-
-  uint8_t error(uint8_t responseSize) const {
-    return data[responseSize];
-  }
-
-} __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpParamSetByNameResponse) // largest kind of param
-
+};
 
 // Port 3 (Commander)
 
-struct crtpSetpointRequest
+class crtpSetpointRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
+public:
   crtpSetpointRequest(
     float roll,
     float pitch,
     float yawrate,
     uint16_t thrust)
-    : header(0x03, 0)
-    , roll(roll)
-    , pitch(pitch)
-    , yawrate(yawrate)
-    , thrust(thrust)
+    : Packet(3, 0, 14)
   {
+    setPayloadAt<float>(0, roll);
+    setPayloadAt<float>(4, pitch);
+    setPayloadAt<float>(8, yawrate);
+    setPayloadAt<uint16_t>(12, thrust);
   }
-  const crtp header;
-  float roll;
-  float pitch;
-  float yawrate;
-  uint16_t thrust;
-}  __attribute__((packed));
-CHECKSIZE(crtpSetpointRequest)
-#endif
+};
+
 // Port 4 (Memory access)
 
 class crtpMemoryGetNumberRequest
@@ -397,74 +295,114 @@ struct crtpMemoryGetInfoResponse
   }
 };
 
-#if 0
-struct crtpMemoryReadRequest
+class crtpMemoryReadRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
+public:
   crtpMemoryReadRequest(
-    uint8_t memId,
-    uint32_t memAddr,
-    uint8_t length)
-    : header(0x04, 1)
-    , memId(memId)
-    , memAddr(memAddr)
-    , length(length)
+      uint8_t memId,
+      uint32_t memAddr,
+      uint8_t length)
+      : Packet(4, 1, 6)
   {
+    setPayloadAt<uint8_t>(0, memId);
+    setPayloadAt<uint32_t>(1, memAddr);
+    setPayloadAt<uint8_t>(5, length);
   }
-  const crtp header;
-  uint8_t memId;
-  uint32_t memAddr;
-  uint8_t length;
-}  __attribute__((packed));
-CHECKSIZE(crtpMemoryReadRequest)
+};
 
 struct crtpMemoryReadResponse
 {
-    static bool match(const Crazyradio::Ack& response) {
-      return response.size > 2 &&
-             crtp(response.data[0]) == crtp(4, 1);
-    }
-
-    crtp header;
-    uint8_t memId;
-    uint32_t memAddr;
-    uint8_t status;
-    uint8_t data[24];
-} __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpMemoryReadResponse)
-
-struct crtpMemoryWriteRequest
-{
-  crtpMemoryWriteRequest(
-    uint8_t memId,
-    uint32_t memAddr)
-    : header(0x04, 2)
-    , memId(memId)
-    , memAddr(memAddr)
+  static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p)
   {
+    return p.port() == 4 &&
+           p.channel() == 1 &&
+           p.payloadSize() > 6;
   }
-  const crtp header;
-  uint8_t memId;
-  uint32_t memAddr;
-  uint8_t data[24];
-}  __attribute__((packed));
-CHECKSIZE(crtpMemoryWriteRequest)
+
+  static uint8_t id(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.payloadAt<uint8_t>(0);
+  }
+
+  static uint32_t address(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.payloadAt<uint32_t>(1);
+  }
+
+  static uint8_t status(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.payloadAt<uint8_t>(5);
+  }
+
+  static uint8_t dataSize(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.payloadSize() - 6;
+  }
+
+  template <typename T>
+  static T dataAt(const bitcraze::crazyflieLinkCpp::Packet &p, uint8_t idx)
+  {
+    return p.payloadAt<T>(6 + idx);
+  }
+};
+
+class crtpMemoryWriteRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
+{
+public:
+  crtpMemoryWriteRequest(
+      uint8_t memId,
+      uint32_t memAddr)
+      : Packet(4, 2, 5)
+  {
+    setPayloadAt<uint8_t>(0, memId);
+    setPayloadAt<uint32_t>(1, memAddr);
+  }
+
+  void setDataAt(uint8_t idx, const uint8_t* data, size_t size)
+  {
+    setPayloadAt(5+idx, data, size);
+  }
+
+  template <typename T>
+  void setDataAt(uint8_t idx, const T& data)
+  {
+    setPayloadAt<T>(5+idx, data);
+  }
+
+  void setDataSize(uint8_t size)
+  {
+    setPayloadSize(5+size);
+  }
+};
 
 struct crtpMemoryWriteResponse
 {
-    static bool match(const Crazyradio::Ack& response) {
-      return response.size > 2 &&
-             crtp(response.data[0]) == crtp(4, 2);
-    }
+  static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.port() == 4 &&
+           p.channel() == 2 &&
+           p.payloadSize() == 6;
+  }
 
-    crtp header;
-    uint8_t memId;
-    uint32_t memAddr;
-    uint8_t status;
-} __attribute__((packed));
-CHECKSIZE_RESPONSE(crtpMemoryWriteResponse)
+  static uint8_t id(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.payloadAt<uint8_t>(0);
+  }
+
+  static uint32_t address(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.payloadAt<uint32_t>(1);
+  }
+
+  static uint8_t status(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return p.payloadAt<uint8_t>(5);
+  }
+};
 
 // Port 5 (Data logging)
-#endif
 
 // Get basic information about table of contents (TOC)
 class crtpLogGetInfoV2Request
@@ -659,43 +597,56 @@ struct crtpExternalPositionUpdate
 }  __attribute__((packed));
 CHECKSIZE(crtpExternalPositionUpdate)
 
-struct crtpExternalPositionPacked
+#endif
+
+class crtpExternalPositionPacked
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
+public:
   crtpExternalPositionPacked()
-    : header(0x06, 2)
+      : Packet(0x06, 2, 0)
   {
   }
-  const crtp header;
-  struct {
-    uint8_t id;
-    int16_t x; // mm
-    int16_t y; // mm
-    int16_t z; // mm
-  } __attribute__((packed)) positions[4];
-}  __attribute__((packed));
-CHECKSIZE(crtpExternalPositionPacked)
 
-struct crtpEmergencyStopRequest
+  void add(uint8_t id, uint16_t x, uint16_t y, uint16_t z)
+  {
+    uint8_t idx = payloadSize();
+    setPayloadSize(idx + 7);
+    setPayloadAt<uint8_t>(idx, id);
+    setPayloadAt<uint16_t>(idx + 1, x); // mm
+    setPayloadAt<uint16_t>(idx + 3, y); // mm
+    setPayloadAt<uint16_t>(idx + 5, z); // mm
+  }
+
+  void clear()
+  {
+    setPayloadSize(0);
+  }
+};
+
+class crtpEmergencyStopRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
+public:
   crtpEmergencyStopRequest()
-    : header(0x06, 1)
+      : Packet(0x06, 1, 1)
   {
+    setPayloadAt<uint8_t>(0, 3); // type
   }
-  const crtp header;
-  const uint8_t type = 3;
-}  __attribute__((packed));
-CHECKSIZE(crtpEmergencyStopRequest)
+};
 
-struct crtpEmergencyStopWatchdogRequest
+class crtpEmergencyStopWatchdogRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
+public:
   crtpEmergencyStopWatchdogRequest()
-    : header(0x06, 1)
+      : Packet(0x06, 1, 1)
   {
+    setPayloadAt<uint8_t>(0, 4); // type
   }
-  const crtp header;
-  const uint8_t type = 4;
-}  __attribute__((packed));
-CHECKSIZE(crtpEmergencyStopWatchdogRequest)
+};
+
+#if 0
 
 struct crtpExternalPoseUpdate
 {
@@ -729,259 +680,252 @@ struct crtpExternalPoseUpdate
 }  __attribute__((packed));
 CHECKSIZE(crtpExternalPoseUpdate)
 
-struct crtpExternalPosePacked
+#endif
+
+class crtpExternalPosePacked
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
+public:
   crtpExternalPosePacked()
-    : header(0x06, 1)
+      : Packet(0x06, 1, 1)
   {
+    setPayloadAt<uint8_t>(0, 9); // type
   }
-  const crtp header;
-  const uint8_t type = 9;
-  struct {
-    uint8_t id; // last 8 bit of the Crazyflie address
-    int16_t x; // mm
-    int16_t y; // mm
-    int16_t z; // mm
-    uint32_t quat; // compressed quaternion, see quatcompress.h
-  } __attribute__((packed)) poses[2];
-}  __attribute__((packed));
-CHECKSIZE(crtpExternalPosePacked)
 
-struct crtpStopRequest
-{
-  crtpStopRequest();
-  const crtp header;
-  uint8_t type;
-} __attribute__((packed));
-CHECKSIZE(crtpStopRequest)
+  void add(uint8_t id, uint16_t x, uint16_t y, uint16_t z, uint32_t quat)
+  {
+    uint8_t idx = payloadSize();
+    setPayloadSize(idx + 11);
+    setPayloadAt<uint8_t>(idx, id);     // last 8 bit of the Crazyflie address
+    setPayloadAt<uint16_t>(idx + 1, x); // mm
+    setPayloadAt<uint16_t>(idx + 3, y); // mm
+    setPayloadAt<uint16_t>(idx + 5, z); // mm
+    setPayloadAt<uint32_t>(idx + 7, quat); // compressed quaternion, see quatcompress.h
+  }
 
-struct crtpHoverSetpointRequest
+  void clear()
+  {
+    setPayloadSize(1);
+  }
+};
+
+class crtpStopRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
+public:
+  crtpStopRequest()
+      : Packet(0x07, 0, 1)
+  {
+    setPayloadAt<uint8_t>(0, 0);  // type
+  }
+};
+
+class crtpHoverSetpointRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
+{
+public:
   crtpHoverSetpointRequest(
-    float vx,
-    float vy,
-    float yawrate,
-    float zDistance);
-  const crtp header;
-  uint8_t type;
-  float vx;
-  float vy;
-  float yawrate;
-  float zDistance;
-} __attribute__((packed));
-CHECKSIZE(crtpHoverSetpointRequest)
+      float vx,
+      float vy,
+      float yawrate,
+      float zDistance)
+      : Packet(0x07, 0, 17)
+  {
+    setPayloadAt<uint8_t>(0, 5); // type
+    setPayloadAt<float>(1, vx); // m/s
+    setPayloadAt<float>(5, vy); // m/s
+    setPayloadAt<float>(9, yawrate); // deg/s
+    setPayloadAt<float>(13, zDistance); // m
+  }
+};
 
-struct crtpPositionSetpointRequest
+class crtpPositionSetpointRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
+public:
   crtpPositionSetpointRequest(
-    float x,
-    float y,
-    float z,
-    float yaw);
-  const crtp header;
-  uint8_t type;
-  float x;
-  float y;
-  float z;
-  float yaw;
-} __attribute__((packed));
-CHECKSIZE(crtpPositionSetpointRequest)
+      float x,
+      float y,
+      float z,
+      float yaw)
+      : Packet(0x07, 0, 17)
+  {
+    setPayloadAt<uint8_t>(0, 7);  // type
+    setPayloadAt<float>(1, x);    // m
+    setPayloadAt<float>(5, y);    // m
+    setPayloadAt<float>(9, z);    // m
+    setPayloadAt<float>(13, yaw); // deg
+  }
+};
 
 // Port 0x07 (Generic Setpoint)
 
-struct crtpFullStateSetpointRequest
+class crtpFullStateSetpointRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
+public:
   crtpFullStateSetpointRequest(
-    float x, float y, float z,
-    float vx, float vy, float vz,
-    float ax, float ay, float az,
-    float qx, float qy, float qz, float qw,
-    float rollRate, float pitchRate, float yawRate);
-  const crtp header;
-  uint8_t type;
-  int16_t x;
-  int16_t y;
-  int16_t z;
-  int16_t vx;
-  int16_t vy;
-  int16_t vz;
-  int16_t ax;
-  int16_t ay;
-  int16_t az;
-  int32_t quat; // compressed quaternion, xyzw
-  int16_t omegax;
-  int16_t omegay;
-  int16_t omegaz;
-} __attribute__((packed));
-CHECKSIZE(crtpFullStateSetpointRequest)
+      float x, float y, float z,
+      float vx, float vy, float vz,
+      float ax, float ay, float az,
+      float qx, float qy, float qz, float qw,
+      float rollRate, float pitchRate, float yawRate)
+      : Packet(0x07, 0, 29)
+  {
+    setPayloadAt<uint8_t>(0, 6);          // type
+    setPayloadAt<int16_t>(1, x * 1000);  // mm
+    setPayloadAt<int16_t>(3, y * 1000);  // mm
+    setPayloadAt<int16_t>(5, z * 1000);  // mm
+    setPayloadAt<int16_t>(7, vx * 1000);  // mm/s
+    setPayloadAt<int16_t>(9, vy * 1000);  // mm/s
+    setPayloadAt<int16_t>(11, vz * 1000); // mm/s
+    setPayloadAt<int16_t>(13, ax * 1000); // mm/s^2
+    setPayloadAt<int16_t>(15, ay * 1000); // mm/s^2
+    setPayloadAt<int16_t>(17, az * 1000); // mm/s^2
+    float q[4] = {qx, qy, qz, qw};
+    setPayloadAt<int32_t>(19, quatcompress(q));
+    setPayloadAt<int16_t>(23, rollRate * 1000);   // millirad/s
+    setPayloadAt<int16_t>(25, pitchRate * 1000);  // millirad/s
+    setPayloadAt<int16_t>(27, yawRate * 1000);    // millirad/s
+  }
+};
 
-struct crtpVelocityWorldSetpointRequest
+class crtpVelocityWorldSetpointRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
+public:
   crtpVelocityWorldSetpointRequest(
       float x, float y, float z, float yawRate)
-      : header(0X07, 0), type(1), x(x), y(y), z(z), yawRate(yawRate)
+      : Packet(0x07, 0, 17)
   {
+    setPayloadAt<uint8_t>(0, 1);        // type
+    setPayloadAt<float>(1, x);          // m
+    setPayloadAt<float>(5, y);          // m
+    setPayloadAt<float>(9, z);          // m
+    setPayloadAt<float>(13, yawRate);   // rad
   }
-  const crtp header;
-  uint8_t type;
-  float x;
-  float y;
-  float z;
-  float yawRate;
-}__attribute__((packed));
-CHECKSIZE(crtpVelocityWorldSetpointRequest);
+};
 
-struct crtpNotifySetpointsStopRequest
+class crtpNotifySetpointsStopRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
-  crtpNotifySetpointsStopRequest(uint32_t remainValidMillisecs)
-    : header(0x07, 1), type(0), remainValidMillisecs(remainValidMillisecs)
+public:
+  crtpNotifySetpointsStopRequest(
+      uint32_t remainValidMillisecs)
+      : Packet(0x07, 1, 5)
   {
+    setPayloadAt<uint8_t>(0, 0);      // type
+    setPayloadAt<uint32_t>(1, remainValidMillisecs);
   }
-  const crtp header;
-  uint8_t type;
-  uint32_t remainValidMillisecs;
-}__attribute__((packed));
-CHECKSIZE(crtpNotifySetpointsStopRequest);
+};
 
 // Port 0x08 (High-level Setpoints)
 
-struct crtpCommanderHighLevelSetGroupMaskRequest
+class crtpCommanderHighLevelSetGroupMaskRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
+public:
   crtpCommanderHighLevelSetGroupMaskRequest(
-    uint8_t groupMask)
-    : header(0x08, 0)
-    , command(0)
-    , groupMask(groupMask)
-    {
-    }
+      uint8_t groupMask)
+      : Packet(8, 0, 2)
+  {
+    setPayloadAt<uint8_t>(0, 0);         // command
+    setPayloadAt<uint8_t>(1, groupMask); // mask of this CF
+  }
+};
 
-    const crtp header;
-    const uint8_t command;
-    uint8_t groupMask;
-} __attribute__((packed));
-CHECKSIZE(crtpCommanderHighLevelSetGroupMaskRequest)
-
-struct crtpCommanderHighLevelTakeoffRequest
+class crtpCommanderHighLevelTakeoffRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
+public:
   crtpCommanderHighLevelTakeoffRequest(
-    uint8_t groupMask,
-    float height,
-    float duration)
-    : header(0x08, 0)
-    , command(1)
-    , groupMask(groupMask)
-    , height(height)
-    , duration(duration)
-    {
-    }
+      uint8_t groupMask,
+      float height,
+      float duration)
+      : Packet(8, 0, 10)
+  {
+    setPayloadAt<uint8_t>(0, 1);         // command
+    setPayloadAt<uint8_t>(1, groupMask); // mask for which CFs this should apply to
+    setPayloadAt<float>(2, height);      // m (absolute)
+    setPayloadAt<float>(6, duration);    // s (time it should take until target height is reached)
+  }
+};
 
-    const crtp header;
-    const uint8_t command;
-    uint8_t groupMask;        // mask for which CFs this should apply to
-    float height;             // m (absolute)
-    float duration;           // s (time it should take until target height is reached)
-} __attribute__((packed));
-CHECKSIZE(crtpCommanderHighLevelTakeoffRequest)
-
-struct crtpCommanderHighLevelLandRequest
+class crtpCommanderHighLevelLandRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
+public:
   crtpCommanderHighLevelLandRequest(
-    uint8_t groupMask,
-    float height,
-    float duration)
-    : header(0x08, 0)
-    , command(2)
-    , groupMask(groupMask)
-    , height(height)
-    , duration(duration)
-    {
-    }
+      uint8_t groupMask,
+      float height,
+      float duration)
+      : Packet(8, 0, 10)
+  {
+    setPayloadAt<uint8_t>(0, 2);        // command
+    setPayloadAt<uint8_t>(1, groupMask);// mask for which CFs this should apply to
+    setPayloadAt<float>(2, height);     // m (absolute)
+    setPayloadAt<float>(6, duration);   // s (time it should take until target height is reached)
+  }
+};
 
-    const crtp header;
-    const uint8_t command;
-    uint8_t groupMask;        // mask for which CFs this should apply to
-    float height;             // m (absolute)
-    float duration;           // s (time it should take until target height is reached)
-} __attribute__((packed));
-CHECKSIZE(crtpCommanderHighLevelLandRequest)
-
-struct crtpCommanderHighLevelStopRequest
+class crtpCommanderHighLevelStopRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
+public:
   crtpCommanderHighLevelStopRequest(
-    uint8_t groupMask)
-    : header(0x08, 0)
-    , command(3)
-    , groupMask(groupMask)
-    {
-    }
+      uint8_t groupMask)
+      : Packet(8, 0, 2)
+  {
+    setPayloadAt<uint8_t>(0, 3);         // command
+    setPayloadAt<uint8_t>(1, groupMask); // mask for which CFs this should apply to
+  }
+};
 
-    const crtp header;
-    const uint8_t command;
-    uint8_t groupMask;        // mask for which CFs this should apply to
-} __attribute__((packed));
-CHECKSIZE(crtpCommanderHighLevelStopRequest)
-
-struct crtpCommanderHighLevelGoToRequest
+class crtpCommanderHighLevelGoToRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
+public:
   crtpCommanderHighLevelGoToRequest(
-    uint8_t groupMask,
-    bool relative,
-    float x,
-    float y,
-    float z,
-    float yaw,
-    float duration)
-    : header(0x08, 0)
-    , command(4)
-    , groupMask(groupMask)
-    , relative(relative)
-    , x(x)
-    , y(y)
-    , z(z)
-    , yaw(yaw)
-    , duration(duration)
-    {
-    }
+      uint8_t groupMask,
+      bool relative,
+      float x,
+      float y,
+      float z,
+      float yaw,
+      float duration)
+      : Packet(8, 0, 23)
+  {
+    setPayloadAt<uint8_t>(0, 4);            // command
+    setPayloadAt<uint8_t>(1, groupMask);    // mask for which CFs this should apply to
+    setPayloadAt<uint8_t>(2, relative);     // set to true, if trajectory should be shifted to current setpoint
+    setPayloadAt<float>(3, x);              // m
+    setPayloadAt<float>(7, y);              // m
+    setPayloadAt<float>(11, z);             // m
+    setPayloadAt<float>(15, yaw);           // deg
+    setPayloadAt<float>(19, duration);      // sec
+  }
+};
 
-    const crtp header;
-    const uint8_t command;
-    uint8_t groupMask; // mask for which CFs this should apply to
-    uint8_t relative;  // set to true, if position/yaw are relative to current setpoint
-    float x; // m
-    float y; // m
-    float z; // m
-    float yaw; // deg
-    float duration; // sec
-} __attribute__((packed));
-CHECKSIZE(crtpCommanderHighLevelGoToRequest)
-
-struct crtpCommanderHighLevelStartTrajectoryRequest
+class crtpCommanderHighLevelStartTrajectoryRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
+public:
   crtpCommanderHighLevelStartTrajectoryRequest(
-    uint8_t groupMask,
-    bool relative,
-    bool reversed,
-    uint8_t trajectoryId,
-    float timescale)
-    : header(0x08, 0)
-    , command(5)
-    , groupMask(groupMask)
-    , relative(relative)
-    , reversed(reversed)
-    , trajectoryId(trajectoryId)
-    , timescale(timescale)
-    {
-    }
-
-    const crtp header;
-    const uint8_t command;
-    uint8_t groupMask; // mask for which CFs this should apply to
-    uint8_t relative;  // set to true, if trajectory should be shifted to current setpoint
-    uint8_t reversed;  // set to true, if trajectory should be executed in reverse
-    uint8_t trajectoryId; // id of the trajectory (previously defined by COMMAND_DEFINE_TRAJECTORY)
-    float timescale; // time factor; 1 = original speed; >1: slower; <1: faster
-} __attribute__((packed));
-CHECKSIZE(crtpCommanderHighLevelStartTrajectoryRequest)
+      uint8_t groupMask,
+      bool relative,
+      bool reversed,
+      uint8_t trajectoryId,
+      float timescale)
+      : Packet(8, 0, 9)
+  {
+    setPayloadAt<uint8_t>(0, 5);  // command
+    setPayloadAt<uint8_t>(1, groupMask); // mask for which CFs this should apply to
+    setPayloadAt<uint8_t>(2, relative);  // set to true, if trajectory should be shifted to current setpoint
+    setPayloadAt<uint8_t>(3, reversed);  // set to true, if trajectory should be executed in reverse
+    setPayloadAt<uint8_t>(4, trajectoryId); // id of the trajectory (previously defined by COMMAND_DEFINE_TRAJECTORY)
+    setPayloadAt<float>(5, timescale);      // time factor; 1 = original speed; >1: slower; <1: faster
+  }
+};
 
 enum TrajectoryLocation_e {
   TRAJECTORY_LOCATION_INVALID = 0,
@@ -994,36 +938,27 @@ enum TrajectoryType_e {
   // Future types might include versions without yaw
 };
 
-struct trajectoryDescription
+class crtpCommanderHighLevelDefineTrajectoryRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
 {
-  uint8_t trajectoryLocation; // one of TrajectoryLocation_e
-  uint8_t trajectoryType;     // one of TrajectoryType_e
-  union
-  {
-    struct {
-      uint32_t offset;  // offset in uploaded memory
-      uint8_t n_pieces;
-    } __attribute__((packed)) mem; // if trajectoryLocation is TRAJECTORY_LOCATION_MEM
-  } trajectoryIdentifier;
-} __attribute__((packed));
-
-struct crtpCommanderHighLevelDefineTrajectoryRequest
-{
+public:
   crtpCommanderHighLevelDefineTrajectoryRequest(
-    uint8_t trajectoryId)
-    : header(0x08, 0)
-    , command(6)
-    , trajectoryId(trajectoryId)
-    {
-    }
+      uint8_t trajectoryId)
+      : Packet(8, 0, 2)
+  {
+    setPayloadAt<uint8_t>(0, 6);            // command
+    setPayloadAt<uint8_t>(1, trajectoryId);
+  }
 
-    const crtp header;
-    const uint8_t command;
-    uint8_t trajectoryId;
-    struct trajectoryDescription description;
-} __attribute__((packed));
-CHECKSIZE(crtpCommanderHighLevelDefineTrajectoryRequest)
-#endif
+  void setPoly4d(uint32_t offset, uint8_t n_pieces)
+  {
+    setPayloadAt<uint8_t>(2, TRAJECTORY_LOCATION_MEM); // trajectoryLocation
+    setPayloadAt<uint8_t>(3, TRAJECTORY_TYPE_POLY4D);  // trajectoryType
+    setPayloadAt<uint32_t>(4, offset);                 // offset in uploaded memory
+    setPayloadAt<uint8_t>(8, n_pieces);                // trajectoryType
+    setPayloadSize(9);
+  }
+};
 
 // Port 13 (Platform)
 class crtpGetProtocolVersionRequest
