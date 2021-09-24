@@ -14,6 +14,8 @@
 #include <cmath>
 #include <inttypes.h>
 
+#define FIRMWARE_BUGGY
+
 Logger EmptyLogger;
 
 
@@ -586,10 +588,12 @@ void Crazyflie::requestLogToc(bool forceNoCache)
     {
       crtpLogGetItemV2Request req1(i);
       m_connection.send(req1);
+#ifndef FIRMWARE_BUGGY
     }
 
     for (uint16_t i = 0; i < numLogVariables; ++i)
     {
+#endif
       using res = crtpLogGetItemV2Response;
       auto p = waitForResponse(&res::valid);
 
@@ -600,7 +604,15 @@ void Crazyflie::requestLogToc(bool forceNoCache)
       entry.group = groupAndName.first;
       entry.name = groupAndName.second;
 
+#ifdef FIRMWARE_BUGGY
+      if (res::id(p) != i) {
+        m_logger.warning("Firmware bug! expected " + std::to_string(i) + " got " + std::to_string(res::id(p)));
+        --i; // try again...
+      }
+#else
       assert(res::id(p) == i);
+#endif
+
     }
     // Write a cache file
     {
@@ -674,16 +686,19 @@ void Crazyflie::requestParamToc(bool forceNoCache)
   if (m_paramTocEntries.empty()) {
     m_logger.info("Param TOC: not in cache");
 
+    // Update internal structure with obtained data
+    m_paramTocEntries.resize(numParams);
+
     // Request detailed information
     for (uint16_t i = 0; i < numParams; ++i) {
       crtpParamTocGetItemV2Request req1(i);
       m_connection.send(req1);
+
+#ifndef FIRMWARE_BUGGY
     }
 
-    // Update internal structure with obtained data
-    m_paramTocEntries.resize(numParams);
-
     for (uint16_t i = 0; i < numParams; ++i) {
+#endif
       using res1 = crtpParamTocGetItemV2Response;
       auto p1 = waitForResponse(&res1::valid);
 
@@ -695,7 +710,16 @@ void Crazyflie::requestParamToc(bool forceNoCache)
       entry.group = groupAndName.first;
       entry.name = groupAndName.second;
 
+#ifdef FIRMWARE_BUGGY
+      if (res1::id(p1) != i)
+      {
+        m_logger.warning("Firmware bug! expected " + std::to_string(i) + " got " + std::to_string(res1::id(p1)));
+        --i; // try again...
+      }
+#else
       assert(res1::id(p1) == i);
+#endif
+
     }
     // Write a cache file
     {
@@ -722,10 +746,14 @@ void Crazyflie::requestParamToc(bool forceNoCache)
   {
     crtpParamReadV2Request req2(i);
     m_connection.send(req2);
+
+#ifndef FIRMWARE_BUGGY
   }
 
   for (uint16_t i = 0; i < numParams; ++i)
   {
+#endif
+
     using res2 = crtpParamValueV2Response;
     auto p2 = waitForResponse(&res2::valid);
     assert(res2::status(p2) == 0);
@@ -757,7 +785,17 @@ void Crazyflie::requestParamToc(bool forceNoCache)
     default:
       assert(false);
     }
+
+#ifdef FIRMWARE_BUGGY
+    if (res2::id(p2) != i)
+    {
+      m_logger.warning("Firmware bug! expected " + std::to_string(i) + " got " + std::to_string(res2::id(p2)));
+      --i; // try again...
+    }
+#else
     assert(res2::id(p2) == i);
+#endif
+
   }
 }
 void Crazyflie::requestMemoryToc()
@@ -968,11 +1006,13 @@ void Crazyflie::uploadTrajectory(
         size_t size = std::min<size_t>(remainingBytes, 24);
         req.setDataAt(0, reinterpret_cast<const uint8_t *>(pieces.data()) + i * 24, size);
         req.setDataSize(size);
+        m_connection.send(req);
         remainingBytes -= size;
       }
       // define trajectory
       crtpCommanderHighLevelDefineTrajectoryRequest req(trajectoryId);
       req.setPoly4d(pieceOffset * sizeof(poly4d), (uint8_t)pieces.size());
+      m_connection.send(req);
       return;
     }
   }
