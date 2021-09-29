@@ -434,7 +434,7 @@ void Crazyflie::writeFlash(
       //   auto end = std::chrono::system_clock::now();
       //   std::chrono::duration<double> elapsedSeconds = end-start;
       //   if (elapsedSeconds.count() > 1.0) {
-      //     throw std::runtime_error("timeout");
+      //     throwTimeout();
       //   }
       // }
       offset += requestedSize;
@@ -501,7 +501,7 @@ void Crazyflie::writeFlash(
           sendPacketOrTimeout(req, false);
           ++tries;
           if (tries > 5) {
-            throw std::runtime_error("timeout");
+            throwTimeout();
           }
         }
       }
@@ -1033,7 +1033,7 @@ bool Crazyflie::sendPacketInternal(
     auto end = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsedSeconds = end-start;
     if (elapsedSeconds.count() > timeout) {
-      throw std::runtime_error("timeout");
+      throwTimeout();
     }
   }
 }
@@ -1302,7 +1302,7 @@ void Crazyflie::handleRequests(
           auto end = std::chrono::system_clock::now();
           std::chrono::duration<double> elapsedSeconds = end-start;
           if (elapsedSeconds.count() > timeout) {
-            throw std::runtime_error("timeout");
+            throwTimeout();
           }
           // std::cout << "send req " << requestIdx << std::endl;
         } while (!ack.ack);
@@ -1318,7 +1318,7 @@ void Crazyflie::handleRequests(
         auto end = std::chrono::system_clock::now();
         std::chrono::duration<double> elapsedSeconds = end-start;
         if (elapsedSeconds.count() > timeout) {
-          throw std::runtime_error("timeout");
+          throwTimeout();
         }
         // std::cout << "send ping " << m_numRequestsEnqueued << std::endl;
       }
@@ -1334,7 +1334,7 @@ void Crazyflie::handleRequests(
             auto end = std::chrono::system_clock::now();
             std::chrono::duration<double> elapsedSeconds = end-start;
             if (elapsedSeconds.count() > timeout) {
-              throw std::runtime_error("timeout");
+              throwTimeout();
             }
           }
         }
@@ -1354,7 +1354,7 @@ void Crazyflie::handleRequests(
           auto end = std::chrono::system_clock::now();
           std::chrono::duration<double> elapsedSeconds = end-start;
           if (elapsedSeconds.count() > timeout) {
-            throw std::runtime_error("timeout");
+            throwTimeout();
           }
         }
 
