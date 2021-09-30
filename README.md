@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/whoenig/crazyflie_cpp.svg?branch=master)](https://travis-ci.org/whoenig/crazyflie_cpp)
+[![CMake](https://github.com/whoenig/crazyflie_cpp/actions/workflows/cmake.yml/badge.svg?branch=master)](https://github.com/whoenig/crazyflie_cpp/actions/workflows/cmake.yml)
 
 # Crazyflie_cpp
 
