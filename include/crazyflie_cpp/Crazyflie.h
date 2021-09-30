@@ -436,6 +436,15 @@ private:
     return reinterpret_cast<const R*>(m_batchRequests[index].ack.data);
   }
 
+  void throwTimeout()
+  {
+    std::stringstream message;
+    int lastbyte = 0xFF & m_address;
+    message << "timeout for Crazyflie " << std::hex << m_address
+      << " (last byte " << std::dec << lastbyte << ")";
+    throw std::runtime_error(message.str().c_str());
+  }
+
 private:
   struct logInfo {
     uint8_t len;
