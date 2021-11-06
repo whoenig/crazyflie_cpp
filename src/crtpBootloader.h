@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 
+#if 0
 // Header
 struct bootloader
 {
@@ -176,3 +177,4 @@ struct bootloaderResetRequest
   bootloader header;
   uint8_t bootToFirmware; //0=boot to bootloader; otherwise: boot to firmware
 } __attribute__((packed));
+#endif
