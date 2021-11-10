@@ -12,7 +12,7 @@ endif()
 
 option(BUILD_PYTHON_BINDINGS "" OFF)
 option(BUILD_CPP_EXAMPLES "" OFF)
-add_subdirectory(crazyflie-link-cpp)
+add_subdirectory(crazyflie-link-cpp EXCLUDE_FROM_ALL)
 
 add_library(crazyflie_cpp
   src/Crazyflie.cpp
