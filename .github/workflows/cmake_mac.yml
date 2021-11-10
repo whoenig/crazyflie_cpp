@@ -1,0 +1,29 @@
+name: CMake (Mac)
+
+on:
+  push:
+    branches: [ dev-crazyflie-link-cpp ]
+  pull_request:
+    branches: [ dev-crazyflie-link-cpp ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: macos-10.15
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
+
+    - name: Install dependencies
+      run: |
+        brew install libusb
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
