@@ -132,6 +132,15 @@ public:
     uint64_t address = 0xE7E7E7E7E7);
 
 
+  // returns the URI for this Crazyflie
+  std::string uri() const;
+
+  // returns the URI that can be used for broadcast communication (or empty string if there is none)
+  std::string broadcastUri() const;
+
+  // returns the address for this URI (or -1 if there is none)
+  uint64_t address() const;
+
   int getProtocolVersion();
 
   std::string getFirmwareVersion();

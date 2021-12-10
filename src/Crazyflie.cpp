@@ -13,6 +13,7 @@
 #include <thread>
 #include <cmath>
 #include <inttypes.h>
+#include <regex>
 
 #define FIRMWARE_BUGGY
 
@@ -43,6 +44,34 @@ std::vector<std::string> Crazyflie::scan(
   return bitcraze::crazyflieLinkCpp::Connection::scan(address);
 }
 
+std::string Crazyflie::uri() const
+{
+  return m_connection.uri();
+}
+
+std::string Crazyflie::broadcastUri() const
+{
+  const std::regex uri_regex("radio:\\/\\/(\\d+|\\*)\\/(\\d+)\\/(250K|1M|2M)\\/([a-fA-F0-9]+)");
+  std::smatch match;
+  if (!std::regex_match(m_connection.uri(), match, uri_regex))
+  {
+    // unsupported for broadcast
+    return std::string();
+  }
+
+  return "radiobroadcast://*/" + match[2].str() + "/" + match[3].str();
+}
+
+uint64_t Crazyflie::address() const
+{
+  const std::regex uri_regex("radio:\\/\\/(\\d+|\\*)\\/(\\d+)\\/(250K|1M|2M)\\/([a-fA-F0-9]+)");
+  std::smatch match;
+  if (!std::regex_match(m_connection.uri(), match, uri_regex))
+  {
+    return -1;
+  }
+  return std::stoull(match[4].str(), nullptr, 16);
+}
 
 int Crazyflie::getProtocolVersion()
 {
