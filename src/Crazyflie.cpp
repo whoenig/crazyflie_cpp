@@ -211,7 +211,10 @@ void Crazyflie::sendExternalPoseUpdate(
 #endif
 void Crazyflie::sendPing()
 {
-  waitForResponse([](const auto&) {return true;});
+  auto p = m_connection.recv(1);
+  if (p.valid()) {
+    processPacket(p);
+  }
 }
 #if 0
 /**
@@ -927,22 +930,33 @@ bitcraze::crazyflieLinkCpp::Packet Crazyflie::waitForResponse(
 {
   while (true) {
     auto p = m_connection.recv(0);
-    if (crtpConsoleResponse::valid(p)) {
-      if (m_consoleCallback) {
-        m_consoleCallback(crtpConsoleResponse::text(p).c_str());
-      }
-    } else if (crtpLogDataResponse::valid(p)) {
-      uint8_t blockId = crtpLogDataResponse::blockId(p);
-      auto iter = m_logBlockCb.find(blockId);
-      if (iter != m_logBlockCb.end()) {
-        iter->second(p, p.size() - 5);
-      } else {
-        m_logger.warning("Received unrequested data for block: " + std::to_string((int)blockId));
-      }
-    }
-
+    processPacket(p);
     if (condition(p)) {
       return p;
+    }
+  }
+}
+
+void Crazyflie::processPacket(const bitcraze::crazyflieLinkCpp::Packet& p)
+{
+  if (crtpConsoleResponse::valid(p))
+  {
+    if (m_consoleCallback)
+    {
+      m_consoleCallback(crtpConsoleResponse::text(p).c_str());
+    }
+  }
+  else if (crtpLogDataResponse::valid(p))
+  {
+    uint8_t blockId = crtpLogDataResponse::blockId(p);
+    auto iter = m_logBlockCb.find(blockId);
+    if (iter != m_logBlockCb.end())
+    {
+      iter->second(p, p.size() - 5);
+    }
+    else
+    {
+      m_logger.warning("Received unrequested data for block: " + std::to_string((int)blockId));
     }
   }
 }

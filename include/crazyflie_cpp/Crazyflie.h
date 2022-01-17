@@ -367,6 +367,8 @@ private:
   bitcraze::crazyflieLinkCpp::Packet waitForResponse(
       std::function<bool(const bitcraze::crazyflieLinkCpp::Packet&)> condition);
 
+  void processPacket(const bitcraze::crazyflieLinkCpp::Packet& p);
+
 #if 0
   std::vector<crtpPacket_t> m_outgoing_packets;
 
