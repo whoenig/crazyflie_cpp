@@ -739,6 +739,8 @@ public:
     bool reversed = false,
     uint8_t groupMask = 0);
 
+  void notifySetpointsStop(uint32_t remainValidMillisecs);
+
   struct externalPosition
   {
     uint8_t id;
@@ -778,6 +780,13 @@ public:
     crtpParamSetByNameRequest<T> req(group, name, value);
     m_connection.send(req);
   }
+
+  void sendFullStateSetpoint(
+    float x, float y, float z,
+    float vx, float vy, float vz,
+    float ax, float ay, float az,
+    float qx, float qy, float qz, float qw,
+    float rollRate, float pitchRate, float yawRate);
 
 private:
   bitcraze::crazyflieLinkCpp::Connection m_connection;

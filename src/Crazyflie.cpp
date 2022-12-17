@@ -1147,6 +1147,12 @@ void CrazyflieBroadcaster::startTrajectory(
   m_connection.send(req);
 }
 
+void CrazyflieBroadcaster::notifySetpointsStop(uint32_t remainValidMillisecs)
+{
+  crtpNotifySetpointsStopRequest req(remainValidMillisecs);
+  m_connection.send(req);
+}
+
 void CrazyflieBroadcaster::sendExternalPositions(
   const std::vector<externalPosition>& data)
 {
@@ -1197,4 +1203,20 @@ void CrazyflieBroadcaster::sendExternalPoses(
   if (j > 0) {
     m_connection.send(req);
   }
+}
+
+void CrazyflieBroadcaster::sendFullStateSetpoint(
+    float x, float y, float z,
+    float vx, float vy, float vz,
+    float ax, float ay, float az,
+    float qx, float qy, float qz, float qw,
+    float rollRate, float pitchRate, float yawRate)
+{
+  crtpFullStateSetpointRequest req(
+      x, y, z,
+      vx, vy, vz,
+      ax, ay, az,
+      qx, qy, qz, qw,
+      rollRate, pitchRate, yawRate);
+  m_connection.send(req);
 }
