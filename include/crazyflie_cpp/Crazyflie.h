@@ -555,7 +555,7 @@ public:
     Crazyflie* cf,
     const std::vector<std::string>& variables,
     void* userData,
-    std::function<void(uint32_t, std::vector<double>*, void* userData)>& callback)
+    std::function<void(uint32_t, const std::vector<float>*, void* userData)>& callback)
     : m_cf(cf)
     , m_userData(userData)
     , m_callback(callback)
@@ -639,7 +639,7 @@ private:
   void handleData(const bitcraze::crazyflieLinkCpp::Packet &p, uint8_t /*size*/)
   {
     using res = crtpLogDataResponse;
-    std::vector<double> result;
+    std::vector<float> result;
     size_t pos = 0;
     for (size_t i = 0; i < m_types.size(); ++i)
     {
@@ -710,7 +710,7 @@ private:
 private:
   Crazyflie* m_cf;
   void* m_userData;
-  std::function<void(uint32_t, std::vector<double>*, void*)> m_callback;
+  std::function<void(uint32_t, const std::vector<float>*, void*)> m_callback;
   uint8_t m_id;
   std::vector<Crazyflie::LogType> m_types;
 };
