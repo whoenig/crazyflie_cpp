@@ -131,6 +131,11 @@ public:
   static std::vector<std::string> scan(
     uint64_t address = 0xE7E7E7E7E7);
 
+  const bitcraze::crazyflieLinkCpp::Connection::Statistics connectionStats() const
+  {
+    return m_connection.statistics();
+  }
+
 
   // returns the URI for this Crazyflie
   std::string uri() const;
@@ -721,6 +726,11 @@ class CrazyflieBroadcaster
 public:
   CrazyflieBroadcaster(
     const std::string& link_uri);
+
+  const bitcraze::crazyflieLinkCpp::Connection::Statistics connectionStats() const
+  {
+    return m_connection.statistics();
+  }
 
   // High-Level setpoints
   void takeoff(float height, float duration, uint8_t groupMask = 0);
