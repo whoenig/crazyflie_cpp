@@ -608,14 +608,14 @@ public:
   {
   }
 
-  void add(uint8_t id, uint16_t x, uint16_t y, uint16_t z)
+  void add(uint8_t id, int16_t x, int16_t y, int16_t z)
   {
     uint8_t idx = payloadSize();
     setPayloadSize(idx + 7);
     setPayloadAt<uint8_t>(idx, id);
-    setPayloadAt<uint16_t>(idx + 1, x); // mm
-    setPayloadAt<uint16_t>(idx + 3, y); // mm
-    setPayloadAt<uint16_t>(idx + 5, z); // mm
+    setPayloadAt<int16_t>(idx + 1, x); // mm
+    setPayloadAt<int16_t>(idx + 3, y); // mm
+    setPayloadAt<int16_t>(idx + 5, z); // mm
   }
 
   void clear()
@@ -692,14 +692,14 @@ public:
     setPayloadAt<uint8_t>(0, 9); // type
   }
 
-  void add(uint8_t id, uint16_t x, uint16_t y, uint16_t z, uint32_t quat)
+  void add(uint8_t id, int16_t x, int16_t y, int16_t z, uint32_t quat)
   {
     uint8_t idx = payloadSize();
     setPayloadSize(idx + 11);
     setPayloadAt<uint8_t>(idx, id);     // last 8 bit of the Crazyflie address
-    setPayloadAt<uint16_t>(idx + 1, x); // mm
-    setPayloadAt<uint16_t>(idx + 3, y); // mm
-    setPayloadAt<uint16_t>(idx + 5, z); // mm
+    setPayloadAt<int16_t>(idx + 1, x); // mm
+    setPayloadAt<int16_t>(idx + 3, y); // mm
+    setPayloadAt<int16_t>(idx + 5, z); // mm
     setPayloadAt<uint32_t>(idx + 7, quat); // compressed quaternion, see quatcompress.h
   }
 
