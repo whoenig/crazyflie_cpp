@@ -216,6 +216,15 @@ void Crazyflie::sendPing()
     processPacket(p);
   }
 }
+
+void Crazyflie::spin_once()
+{
+  auto p = m_connection.receive(bitcraze::crazyflieLinkCpp::Connection::TimeoutNone);
+  if (p.valid()) {
+    processPacket(p);
+  }
+}
+
 #if 0
 /**
  * Transmits any outgoing packets to the crazyflie.

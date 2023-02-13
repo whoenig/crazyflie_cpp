@@ -199,6 +199,7 @@ public:
     float qx, float qy, float qz, float qw);
 
   void sendPing();
+  void spin_once();
   void reboot();
 #if 0
   // returns new address
