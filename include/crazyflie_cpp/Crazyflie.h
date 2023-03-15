@@ -222,7 +222,8 @@ public:
 
 #endif
   void requestLogToc(bool forceNoCache=false);
-  void requestParamToc(bool forceNoCache=false);
+  void requestParamToc(bool forceNoCache=false, bool requestValues=true);
+  void requestParamValues();
   void requestMemoryToc();
   std::vector<ParamTocEntry>::const_iterator paramsBegin() const {
     return m_paramTocEntries.begin();

@@ -675,7 +675,7 @@ void Crazyflie::requestLogToc(bool forceNoCache)
 
 }
 
-void Crazyflie::requestParamToc(bool forceNoCache)
+void Crazyflie::requestParamToc(bool forceNoCache, bool requestValues)
 {
   // Lazily initialize protocol version
   if (m_protocolVersion < 0) {
@@ -783,6 +783,14 @@ void Crazyflie::requestParamToc(bool forceNoCache)
   // Request values
   assert(m_paramTocEntries.size() == numParams);
   
+  if (requestValues) {
+    requestParamValues();
+  }
+}
+
+void Crazyflie::requestParamValues()
+{
+  size_t numParams = m_paramTocEntries.size();
   for (uint16_t i = 0; i < numParams; ++i)
   {
     crtpParamReadV2Request req2(i);
