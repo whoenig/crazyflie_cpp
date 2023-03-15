@@ -839,6 +839,7 @@ void Crazyflie::requestParamToc(bool forceNoCache)
 
   }
 }
+
 void Crazyflie::requestMemoryToc()
 {
   // Find the number of memories
@@ -851,14 +852,18 @@ void Crazyflie::requestMemoryToc()
   m_logger.info("Memories: " + std::to_string(numberOfMemories));
 
   // Request detailed information
+  m_memoryTocEntries.resize(numberOfMemories);
+
   for (uint8_t i = 0; i < numberOfMemories; ++i) {
     crtpMemoryGetInfoRequest req(i);
     m_connection.send(req);
+
+#ifndef FIRMWARE_BUGGY
   }
 
   // Update internal structure with obtained data
-  m_memoryTocEntries.resize(numberOfMemories);
   for (uint8_t i = 0; i < numberOfMemories; ++i) {
+#endif
     using res = crtpMemoryGetInfoResponse;
     auto p = waitForResponse(&res::valid);
 
@@ -868,7 +873,15 @@ void Crazyflie::requestMemoryToc()
     entry.size = res::size(p);
     entry.addr = res::addr(p);
 
-    assert(i == res::id(p));
+#ifdef FIRMWARE_BUGGY
+    if (res::id(p) != i)
+    {
+      m_logger.warning("Firmware bug! expected " + std::to_string(i) + " got " + std::to_string(res::id(p)));
+      --i; // try again...
+    }
+#else
+    assert(res::id(p) == i);
+#endif
   }
 }
 
