@@ -1250,3 +1250,13 @@ void CrazyflieBroadcaster::sendFullStateSetpoint(
       rollRate, pitchRate, yawRate);
   m_connection.send(req);
 }
+
+void CrazyflieBroadcaster::sendDesCableAnglesSetpoint(
+    const std::vector<desCableAngles>& data)
+{
+  crtpDesCableAnglesSetpointRequest req;
+  for (const auto entry : data) {
+    req.add(entry.id, entry.az, entry.el);
+  }
+  m_connection.send(req);
+}

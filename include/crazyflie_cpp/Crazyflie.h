@@ -800,6 +800,16 @@ public:
     float qx, float qy, float qz, float qw,
     float rollRate, float pitchRate, float yawRate);
 
+  struct desCableAngles
+  {
+    uint8_t id;
+    float az;
+    float el;
+  };
+
+  void sendDesCableAnglesSetpoint(
+    const std::vector<desCableAngles>& data);
+
 private:
   bitcraze::crazyflieLinkCpp::Connection m_connection;
 };
