@@ -217,11 +217,15 @@ void Crazyflie::sendPing()
   }
 }
 
-void Crazyflie::spin_once()
+void Crazyflie::processAllPackets()
 {
-  auto p = m_connection.receive(bitcraze::crazyflieLinkCpp::Connection::TimeoutNone);
-  if (p.valid()) {
-    processPacket(p);
+  while (true) {
+    auto p = m_connection.receive(bitcraze::crazyflieLinkCpp::Connection::TimeoutNone);
+    if (p.valid()) {
+      processPacket(p);
+    } else {
+      break;
+    }
   }
 }
 
