@@ -35,6 +35,8 @@ Crazyflie::Crazyflie(
   , m_protocolVersion(-1)
   , m_logger(logger)
   , m_connection(link_uri)
+  , m_clock_start(std::chrono::steady_clock::now())
+  , m_latencyCounter(0)
 {
 }
 
@@ -993,6 +995,21 @@ void Crazyflie::processPacket(const bitcraze::crazyflieLinkCpp::Packet& p)
       m_logger.warning("Received unrequested data for block: " + std::to_string((int)blockId));
     }
   }
+  else if (crtpLatencyMeasurementResponse::valid(p))
+  {
+    if (m_latencyCallback)
+    {
+      if (crtpLatencyMeasurementResponse::id(p) != m_latencyCounter-1) {
+        m_logger.warning("Received wrong latency id: " + std::to_string(crtpLatencyMeasurementResponse::id(p)));
+      } else {
+        auto now = std::chrono::steady_clock::now();
+        uint64_t recv_timestamp = std::chrono::duration_cast<std::chrono::microseconds>(now - m_clock_start).count();
+        uint64_t send_timestamp = crtpLatencyMeasurementResponse::timestamp(p);
+        uint64_t latency_in_us = recv_timestamp - send_timestamp;
+        m_latencyCallback(latency_in_us);
+      }
+    }
+  }
 }
 
 const Crazyflie::LogTocEntry* Crazyflie::getLogTocEntry(
@@ -1137,6 +1154,16 @@ void Crazyflie::readUSDLogFile(
   throw std::runtime_error("Could not find MemoryTypeUSD!");
 }
 #endif
+
+  void Crazyflie::triggerLatencyMeasurement()
+  {
+    auto now = std::chrono::steady_clock::now();
+    uint64_t timestamp = std::chrono::duration_cast<std::chrono::microseconds>(now - m_clock_start).count();
+    crtpLatencyMeasurementRequest req(m_latencyCounter, timestamp);
+    m_connection.send(req);
+
+    ++m_latencyCounter;
+  }
 ////////////////////////////////////////////////////////////////
 
 CrazyflieBroadcaster::CrazyflieBroadcaster(

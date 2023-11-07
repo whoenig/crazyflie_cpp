@@ -446,3 +446,20 @@ crtpParamSetByNameRequest<float>::crtpParamSetByNameRequest(
 {
 }
 #endif
+
+bool crtpLatencyMeasurementResponse::valid(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+  return p.port() == 15 &&
+         p.channel() == 0 &&
+         p.payloadSize() == 12;
+}
+
+uint32_t crtpLatencyMeasurementResponse::id(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+  return p.payloadAt<uint32_t>(0);
+}
+
+uint64_t crtpLatencyMeasurementResponse::timestamp(const bitcraze::crazyflieLinkCpp::Packet &p)
+{
+  return p.payloadAt<uint64_t>(4);
+}

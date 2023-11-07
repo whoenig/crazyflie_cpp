@@ -1003,6 +1003,29 @@ struct crtpGetDeviceTypeNameResponse
   static std::string name(const bitcraze::crazyflieLinkCpp::Packet &p);
 };
 
+// Port 15 (Link)
+class crtpLatencyMeasurementRequest
+  : public bitcraze::crazyflieLinkCpp::Packet
+{
+public:
+  crtpLatencyMeasurementRequest(
+      uint32_t id,
+      uint64_t timestamp)
+      : Packet(15, 0, 12)
+  {
+    setPayloadAt<uint32_t>(0, id);
+    setPayloadAt<uint64_t>(4, timestamp);
+  }
+};
+
+struct crtpLatencyMeasurementResponse
+{
+  static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p);
+
+  static uint32_t id(const bitcraze::crazyflieLinkCpp::Packet &p);
+  static uint64_t timestamp(const bitcraze::crazyflieLinkCpp::Packet &p);
+};
+
 #if 0
 // The crazyflie-nrf firmware sends empty packets with the signal strength, if nothing else is in the queue
 struct crtpPlatformRSSIAck

@@ -370,6 +370,14 @@ public:
   void readUSDLogFile(
     std::vector<uint8_t>& data);
 #endif
+
+  // latency measurements
+  void setLatencyCallback(
+    std::function<void(uint64_t)> cb) {
+    m_latencyCallback = cb;
+  }
+  void triggerLatencyMeasurement();
+
 private:
   bitcraze::crazyflieLinkCpp::Packet waitForResponse(
       std::function<bool(const bitcraze::crazyflieLinkCpp::Packet&)> condition);
@@ -460,6 +468,12 @@ private:
   Logger& m_logger;
 
   bitcraze::crazyflieLinkCpp::Connection m_connection;
+
+  // latency measurements
+  std::chrono::time_point<std::chrono::steady_clock> m_clock_start;
+  std::function<void(uint64_t)> m_latencyCallback;
+  uint32_t m_latencyCounter;
+
 };
 
 template<class T>
