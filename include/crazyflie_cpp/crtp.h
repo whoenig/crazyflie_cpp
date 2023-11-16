@@ -345,6 +345,11 @@ struct crtpMemoryReadResponse
   {
     return p.payloadAt<T>(6 + idx);
   }
+
+  static const uint8_t* data(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return &p.payload()[6];
+  }
 };
 
 class crtpMemoryWriteRequest

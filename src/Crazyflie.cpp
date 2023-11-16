@@ -1123,47 +1123,48 @@ void Crazyflie::startTrajectory(
   crtpCommanderHighLevelStartTrajectoryRequest req(groupMask, relative, reversed, trajectoryId, timescale);
   m_connection.send(req);
 }
-#if 0
+
 void Crazyflie::readUSDLogFile(
   std::vector<uint8_t>& data)
 {
   for (const auto& entry : m_memoryTocEntries) {
     if (entry.type == MemoryTypeUSD) {
-      startBatchRequest();
       size_t remainingBytes = entry.size;
       size_t numRequests = ceil(remainingBytes / 24.0f);
+      data.resize(entry.size);
       for (size_t i = 0; i < numRequests; ++i) {
         size_t size = std::min<size_t>(remainingBytes, 24);
         crtpMemoryReadRequest req(entry.id, i*24, size);
-        remainingBytes -= size;
-        addRequest(req, 5);
-      }
-      handleRequests();
-      // put result in data vector
-      data.resize(entry.size);
-      remainingBytes = entry.size;
-      for (size_t i = 0; i < numRequests; ++i) {
-        size_t size = std::min<size_t>(remainingBytes, 24);
-        const crtpMemoryReadResponse* response = getRequestResult<crtpMemoryReadResponse>(i);
-        memcpy(&data[i*24], response->data, size);
+        
+        m_connection.send(req);
+        using res = crtpMemoryReadResponse;
+        auto p = waitForResponse(&res::valid);
+        if (   res::id(p) != entry.id
+            || res::address(p) != i*24
+            || res::dataSize(p) != size
+            || res::status(p) != 0) {
+            m_logger.error("readUSDLogFile: unexpected response!");
+            data.clear();
+            return;
+        }
+        memcpy(&data[i*24], res::data(p), res::dataSize(p));
         remainingBytes -= size;
       }
       return;
     }
   }
-  throw std::runtime_error("Could not find MemoryTypeUSD!");
+  m_logger.error("Could not find MemoryTypeUSD!");
 }
-#endif
 
-  void Crazyflie::triggerLatencyMeasurement()
-  {
-    auto now = std::chrono::steady_clock::now();
-    uint64_t timestamp = std::chrono::duration_cast<std::chrono::microseconds>(now - m_clock_start).count();
-    crtpLatencyMeasurementRequest req(m_latencyCounter, timestamp);
-    m_connection.send(req);
+void Crazyflie::triggerLatencyMeasurement()
+{
+  auto now = std::chrono::steady_clock::now();
+  uint64_t timestamp = std::chrono::duration_cast<std::chrono::microseconds>(now - m_clock_start).count();
+  crtpLatencyMeasurementRequest req(m_latencyCounter, timestamp);
+  m_connection.send(req);
 
-    ++m_latencyCounter;
-  }
+  ++m_latencyCounter;
+}
 ////////////////////////////////////////////////////////////////
 
 CrazyflieBroadcaster::CrazyflieBroadcaster(

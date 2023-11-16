@@ -365,11 +365,10 @@ public:
     bool reversed = false,
     bool relative = true,
     uint8_t groupMask = 0);
-#if 0
+
   // Memory subsystem
   void readUSDLogFile(
     std::vector<uint8_t>& data);
-#endif
 
   // latency measurements
   void setLatencyCallback(
