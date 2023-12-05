@@ -1260,3 +1260,13 @@ void CrazyflieBroadcaster::sendDesCableAnglesSetpoint(
   }
   m_connection.send(req);
 }
+
+void CrazyflieBroadcaster::sendDesCableStatesSetpoint(
+    const std::vector<desCableStates>& data)
+{
+  crtpDesCableStatesSetpointRequest req;
+  for (const auto entry : data) {
+    req.add(entry.id, entry.mu_ref_x, entry.mu_ref_y, entry.mu_ref_z, entry.qid_ref_x, entry.qid_ref_y, entry.qid_ref_z);
+  }
+  m_connection.send(req);
+}

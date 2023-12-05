@@ -810,6 +810,20 @@ public:
   void sendDesCableAnglesSetpoint(
     const std::vector<desCableAngles>& data);
 
+  struct desCableStates
+  {
+    uint8_t id;
+    float mu_ref_x;
+    float mu_ref_y;
+    float mu_ref_z;
+    float qid_ref_x;
+    float qid_ref_y;
+    float qid_ref_z;
+  };
+
+  void sendDesCableStatesSetpoint(
+    const std::vector<desCableStates>& data);
+
 private:
   bitcraze::crazyflieLinkCpp::Connection m_connection;
 };
