@@ -345,6 +345,11 @@ struct crtpMemoryReadResponse
   {
     return p.payloadAt<T>(6 + idx);
   }
+
+  static const uint8_t* data(const bitcraze::crazyflieLinkCpp::Packet &p)
+  {
+    return &p.payload()[6];
+  }
 };
 
 class crtpMemoryWriteRequest
@@ -1045,6 +1050,29 @@ struct crtpGetDeviceTypeNameResponse
   static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p);
 
   static std::string name(const bitcraze::crazyflieLinkCpp::Packet &p);
+};
+
+// Port 15 (Link)
+class crtpLatencyMeasurementRequest
+  : public bitcraze::crazyflieLinkCpp::Packet
+{
+public:
+  crtpLatencyMeasurementRequest(
+      uint32_t id,
+      uint64_t timestamp)
+      : Packet(15, 0, 12)
+  {
+    setPayloadAt<uint32_t>(0, id);
+    setPayloadAt<uint64_t>(4, timestamp);
+  }
+};
+
+struct crtpLatencyMeasurementResponse
+{
+  static bool valid(const bitcraze::crazyflieLinkCpp::Packet &p);
+
+  static uint32_t id(const bitcraze::crazyflieLinkCpp::Packet &p);
+  static uint64_t timestamp(const bitcraze::crazyflieLinkCpp::Packet &p);
 };
 
 #if 0

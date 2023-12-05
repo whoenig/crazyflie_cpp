@@ -199,7 +199,7 @@ public:
     float qx, float qy, float qz, float qw);
 
   void sendPing();
-  void spin_once();
+  void processAllPackets();
   void reboot();
 #if 0
   // returns new address
@@ -365,11 +365,18 @@ public:
     bool reversed = false,
     bool relative = true,
     uint8_t groupMask = 0);
-#if 0
+
   // Memory subsystem
   void readUSDLogFile(
     std::vector<uint8_t>& data);
-#endif
+
+  // latency measurements
+  void setLatencyCallback(
+    std::function<void(uint64_t)> cb) {
+    m_latencyCallback = cb;
+  }
+  void triggerLatencyMeasurement();
+
 private:
   bitcraze::crazyflieLinkCpp::Packet waitForResponse(
       std::function<bool(const bitcraze::crazyflieLinkCpp::Packet&)> condition);
@@ -460,6 +467,12 @@ private:
   Logger& m_logger;
 
   bitcraze::crazyflieLinkCpp::Connection m_connection;
+
+  // latency measurements
+  std::chrono::time_point<std::chrono::steady_clock> m_clock_start;
+  std::function<void(uint64_t)> m_latencyCallback;
+  uint32_t m_latencyCounter;
+
 };
 
 template<class T>
