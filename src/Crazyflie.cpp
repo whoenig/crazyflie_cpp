@@ -1101,12 +1101,49 @@ void Crazyflie::uploadTrajectory(
         req.setDataAt(0, reinterpret_cast<const uint8_t *>(pieces.data()) + i * 24, size);
         req.setDataSize(size);
         m_connection.send(req);
+
+        // wait for the response
+        using res = crtpMemoryWriteResponse;
+        auto p = waitForResponse(&res::valid);
+        if (   res::id(p) != entry.id
+            || res::address(p) != pieceOffset * sizeof(poly4d) + i*24
+            || res::status(p) != 0) {
+            m_logger.error("uploadTrajectory: unexpected response!" + std::to_string(res::status(p)));
+        }
+
         remainingBytes -= size;
       }
       // define trajectory
       crtpCommanderHighLevelDefineTrajectoryRequest req(trajectoryId);
       req.setPoly4d(pieceOffset * sizeof(poly4d), (uint8_t)pieces.size());
       m_connection.send(req);
+
+      // // verify
+      // remainingBytes = sizeof(poly4d) * pieces.size();
+      // numRequests = ceil(remainingBytes / 24.0f);
+      // for (size_t i = 0; i < numRequests; ++i) {
+      //   size_t size = std::min<size_t>(remainingBytes, 24);
+      //   crtpMemoryReadRequest req(entry.id, pieceOffset * sizeof(poly4d) + i*24, size);
+        
+      //   m_connection.send(req);
+      //   using res = crtpMemoryReadResponse;
+      //   auto p = waitForResponse(&res::valid);
+      //   if (   res::id(p) != entry.id
+      //       || res::address(p) != pieceOffset * sizeof(poly4d) + i*24
+      //       || res::dataSize(p) != size
+      //       || res::status(p) != 0) {
+      //       m_logger.error("uploadTrajectory: unexpected response!");
+      //       return;
+      //   }
+
+      //   if (memcmp(reinterpret_cast<const uint8_t *>(pieces.data()) + i * 24, res::data(p), res::dataSize(p)) != 0) {
+      //       m_logger.error("uploadTrajectory: verify failed!");
+      //   }
+
+      //   remainingBytes -= size;
+      // }
+      // m_logger.info("upload & verify done!");
+
       return;
     }
   }
