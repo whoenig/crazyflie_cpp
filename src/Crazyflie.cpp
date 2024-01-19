@@ -46,6 +46,20 @@ std::vector<std::string> Crazyflie::scan(
   return bitcraze::crazyflieLinkCpp::Connection::scan(address);
 }
 
+std::string Crazyflie::broadcastUriFromUnicastUri(
+  const std::string& link_uri)
+{
+  const std::regex uri_regex("radio:\\/\\/(\\d+|\\*)\\/(\\d+)\\/(250K|1M|2M)\\/([a-fA-F0-9]+)");
+  std::smatch match;
+  if (!std::regex_match(link_uri, match, uri_regex))
+  {
+    // unsupported for broadcast
+    return std::string();
+  }
+
+  return "radiobroadcast://*/" + match[2].str() + "/" + match[3].str();
+}
+
 std::string Crazyflie::uri() const
 {
   return m_connection.uri();
@@ -53,15 +67,7 @@ std::string Crazyflie::uri() const
 
 std::string Crazyflie::broadcastUri() const
 {
-  const std::regex uri_regex("radio:\\/\\/(\\d+|\\*)\\/(\\d+)\\/(250K|1M|2M)\\/([a-fA-F0-9]+)");
-  std::smatch match;
-  if (!std::regex_match(m_connection.uri(), match, uri_regex))
-  {
-    // unsupported for broadcast
-    return std::string();
-  }
-
-  return "radiobroadcast://*/" + match[2].str() + "/" + match[3].str();
+  return Crazyflie::broadcastUriFromUnicastUri(uri());
 }
 
 uint64_t Crazyflie::address() const

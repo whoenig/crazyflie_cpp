@@ -131,6 +131,9 @@ public:
   static std::vector<std::string> scan(
     uint64_t address = 0xE7E7E7E7E7);
 
+  // returns the URI that can be used for broadcast communication (or empty string if there is none)
+  static std::string broadcastUriFromUnicastUri(const std::string& link_uri);
+
   const bitcraze::crazyflieLinkCpp::Connection::Statistics connectionStats() const
   {
     return m_connection.statistics();
