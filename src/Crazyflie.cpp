@@ -46,6 +46,20 @@ std::vector<std::string> Crazyflie::scan(
   return bitcraze::crazyflieLinkCpp::Connection::scan(address);
 }
 
+std::string Crazyflie::broadcastUriFromUnicastUri(
+  const std::string& link_uri)
+{
+  const std::regex uri_regex("radio:\\/\\/(\\d+|\\*)\\/(\\d+)\\/(250K|1M|2M)\\/([a-fA-F0-9]+)");
+  std::smatch match;
+  if (!std::regex_match(link_uri, match, uri_regex))
+  {
+    // unsupported for broadcast
+    return std::string();
+  }
+
+  return "radiobroadcast://*/" + match[2].str() + "/" + match[3].str();
+}
+
 std::string Crazyflie::uri() const
 {
   return m_connection.uri();
@@ -53,15 +67,7 @@ std::string Crazyflie::uri() const
 
 std::string Crazyflie::broadcastUri() const
 {
-  const std::regex uri_regex("radio:\\/\\/(\\d+|\\*)\\/(\\d+)\\/(250K|1M|2M)\\/([a-fA-F0-9]+)");
-  std::smatch match;
-  if (!std::regex_match(m_connection.uri(), match, uri_regex))
-  {
-    // unsupported for broadcast
-    return std::string();
-  }
-
-  return "radiobroadcast://*/" + match[2].str() + "/" + match[3].str();
+  return Crazyflie::broadcastUriFromUnicastUri(uri());
 }
 
 uint64_t Crazyflie::address() const
@@ -1101,12 +1107,49 @@ void Crazyflie::uploadTrajectory(
         req.setDataAt(0, reinterpret_cast<const uint8_t *>(pieces.data()) + i * 24, size);
         req.setDataSize(size);
         m_connection.send(req);
+
+        // wait for the response
+        using res = crtpMemoryWriteResponse;
+        auto p = waitForResponse(&res::valid);
+        if (   res::id(p) != entry.id
+            || res::address(p) != pieceOffset * sizeof(poly4d) + i*24
+            || res::status(p) != 0) {
+            m_logger.error("uploadTrajectory: unexpected response!" + std::to_string(res::status(p)));
+        }
+
         remainingBytes -= size;
       }
       // define trajectory
       crtpCommanderHighLevelDefineTrajectoryRequest req(trajectoryId);
       req.setPoly4d(pieceOffset * sizeof(poly4d), (uint8_t)pieces.size());
       m_connection.send(req);
+
+      // // verify
+      // remainingBytes = sizeof(poly4d) * pieces.size();
+      // numRequests = ceil(remainingBytes / 24.0f);
+      // for (size_t i = 0; i < numRequests; ++i) {
+      //   size_t size = std::min<size_t>(remainingBytes, 24);
+      //   crtpMemoryReadRequest req(entry.id, pieceOffset * sizeof(poly4d) + i*24, size);
+        
+      //   m_connection.send(req);
+      //   using res = crtpMemoryReadResponse;
+      //   auto p = waitForResponse(&res::valid);
+      //   if (   res::id(p) != entry.id
+      //       || res::address(p) != pieceOffset * sizeof(poly4d) + i*24
+      //       || res::dataSize(p) != size
+      //       || res::status(p) != 0) {
+      //       m_logger.error("uploadTrajectory: unexpected response!");
+      //       return;
+      //   }
+
+      //   if (memcmp(reinterpret_cast<const uint8_t *>(pieces.data()) + i * 24, res::data(p), res::dataSize(p)) != 0) {
+      //       m_logger.error("uploadTrajectory: verify failed!");
+      //   }
+
+      //   remainingBytes -= size;
+      // }
+      // m_logger.info("upload & verify done!");
+
       return;
     }
   }

@@ -131,11 +131,18 @@ public:
   static std::vector<std::string> scan(
     uint64_t address = 0xE7E7E7E7E7);
 
+  // returns the URI that can be used for broadcast communication (or empty string if there is none)
+  static std::string broadcastUriFromUnicastUri(const std::string& link_uri);
+
   const bitcraze::crazyflieLinkCpp::Connection::Statistics connectionStats() const
   {
     return m_connection.statistics();
   }
 
+  bitcraze::crazyflieLinkCpp::Connection::Statistics connectionStatsDelta()
+  {
+    return m_connection.statisticsDelta();
+  }
 
   // returns the URI for this Crazyflie
   std::string uri() const;
@@ -742,9 +749,19 @@ public:
   CrazyflieBroadcaster(
     const std::string& link_uri);
 
+  const std::string& uri() const
+  {
+    return m_connection.uri();
+  }
+
   const bitcraze::crazyflieLinkCpp::Connection::Statistics connectionStats() const
   {
     return m_connection.statistics();
+  }
+
+  bitcraze::crazyflieLinkCpp::Connection::Statistics connectionStatsDelta()
+  {
+    return m_connection.statisticsDelta();
   }
 
   // High-Level setpoints
