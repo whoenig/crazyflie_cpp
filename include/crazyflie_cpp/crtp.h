@@ -842,6 +842,11 @@ public:
     setPayloadAt<int16_t>(idx+1, az * 1000);
     setPayloadAt<int16_t>(idx+3, el * 1000);
   }
+
+  void clear()
+  {
+    setPayloadSize(1);
+  }
 };
 
 class crtpDesCableStatesSetpointRequest
@@ -865,6 +870,11 @@ public:
     setPayloadAt<int16_t>(idx+7, qid_ref_x * 1000);
     setPayloadAt<int16_t>(idx+9, qid_ref_y * 1000);
     setPayloadAt<int16_t>(idx+11, qid_ref_z * 1000);
+  }
+
+  void clear()
+  {
+    setPayloadSize(1);
   }
 };
 
