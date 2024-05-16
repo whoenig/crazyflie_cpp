@@ -293,6 +293,13 @@ std::string crtpGetDeviceTypeNameResponse::name(const bitcraze::crazyflieLinkCpp
   return p.payloadAtString(1);
 }
 
+crtpArmingRequest::crtpArmingRequest(bool arm)
+    : Packet(13, 0, 2)
+{
+  setPayloadAt<uint8_t>(0, 1);
+  setPayloadAt<uint8_t>(1, arm);
+}
+
 #if 0
 crtpFullStateSetpointRequest::crtpFullStateSetpointRequest(
   float x, float y, float z,

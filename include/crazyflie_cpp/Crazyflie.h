@@ -158,6 +158,9 @@ public:
   std::string getFirmwareVersion();
 
   std::string getDeviceTypeName();
+
+  void sendArmingRequest(bool arm);
+
   void logReset();
 
   void sendSetpoint(
@@ -763,6 +766,8 @@ public:
   {
     return m_connection.statisticsDelta();
   }
+
+  void sendArmingRequest(bool arm);
 
   // High-Level setpoints
   void takeoff(float height, float duration, uint8_t groupMask = 0);
