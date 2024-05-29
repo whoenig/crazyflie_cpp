@@ -1062,6 +1062,13 @@ struct crtpGetDeviceTypeNameResponse
   static std::string name(const bitcraze::crazyflieLinkCpp::Packet &p);
 };
 
+class crtpArmingRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
+{
+public:
+  crtpArmingRequest(bool arm);
+};
+
 // Port 15 (Link)
 class crtpLatencyMeasurementRequest
   : public bitcraze::crazyflieLinkCpp::Packet

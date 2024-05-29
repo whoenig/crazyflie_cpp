@@ -108,6 +108,12 @@ std::string Crazyflie::getDeviceTypeName()
   return res::name(p);
 }
 
+void Crazyflie::sendArmingRequest(bool arm)
+{
+  crtpArmingRequest req(arm);
+  m_connection.send(req);
+}
+
 void Crazyflie::logReset()
 {
   crtpLogResetRequest request;
@@ -1215,6 +1221,13 @@ CrazyflieBroadcaster::CrazyflieBroadcaster(
   : m_connection(link_uri)
 {
 }
+
+void CrazyflieBroadcaster::sendArmingRequest(bool arm)
+{
+  crtpArmingRequest req(arm);
+  m_connection.send(req);
+}
+
 void CrazyflieBroadcaster::takeoff(float height, float duration, uint8_t groupMask)
 {
   crtpCommanderHighLevelTakeoffRequest req(groupMask, height, duration);
