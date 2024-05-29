@@ -824,6 +824,60 @@ public:
   }
 };
 
+class crtpDesCableAnglesSetpointRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
+{
+public:
+  crtpDesCableAnglesSetpointRequest()
+      : Packet(0x07, 0, 1)
+  {
+    setPayloadAt<uint8_t>(0, 8);          // type
+  }
+
+  void add(uint8_t id, float az, float el)
+  {
+    uint8_t idx = payloadSize();
+    setPayloadSize(idx + 5);
+    setPayloadAt<uint8_t>(idx, id);
+    setPayloadAt<int16_t>(idx+1, az * 1000);
+    setPayloadAt<int16_t>(idx+3, el * 1000);
+  }
+
+  void clear()
+  {
+    setPayloadSize(1);
+  }
+};
+
+class crtpDesCableStatesSetpointRequest
+    : public bitcraze::crazyflieLinkCpp::Packet
+{
+public:
+  crtpDesCableStatesSetpointRequest()
+      : Packet(0x07, 0, 1)
+  {
+    setPayloadAt<uint8_t>(0, 9);          // type
+  }
+
+  void add(uint8_t id, float mu_ref_x, float mu_ref_y, float mu_ref_z, float qid_ref_x, float qid_ref_y, float qid_ref_z)
+  {
+    uint8_t idx = payloadSize();
+    setPayloadSize(idx + 13);
+    setPayloadAt<uint8_t>(idx, id);
+    setPayloadAt<int16_t>(idx+1, mu_ref_x * 1000);
+    setPayloadAt<int16_t>(idx+3, mu_ref_y * 1000);
+    setPayloadAt<int16_t>(idx+5, mu_ref_z * 1000);
+    setPayloadAt<int16_t>(idx+7, qid_ref_x * 1000);
+    setPayloadAt<int16_t>(idx+9, qid_ref_y * 1000);
+    setPayloadAt<int16_t>(idx+11, qid_ref_z * 1000);
+  }
+
+  void clear()
+  {
+    setPayloadSize(1);
+  }
+};
+
 // Port 0x08 (High-level Setpoints)
 
 class crtpCommanderHighLevelSetGroupMaskRequest

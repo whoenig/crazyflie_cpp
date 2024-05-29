@@ -14,7 +14,7 @@
 #include <cmath>
 #include <inttypes.h>
 #include <regex>
-
+#include <iostream>
 #define FIRMWARE_BUGGY
 
 Logger EmptyLogger;
@@ -1337,4 +1337,44 @@ void CrazyflieBroadcaster::sendFullStateSetpoint(
       qx, qy, qz, qw,
       rollRate, pitchRate, yawRate);
   m_connection.send(req);
+}
+
+void CrazyflieBroadcaster::sendDesCableAnglesSetpoint(
+    const std::vector<desCableAngles>& data)
+{
+  crtpDesCableAnglesSetpointRequest req;
+  size_t j = 0;
+  for (const auto entry : data) {
+    req.add(entry.id, entry.az, entry.el);
+    ++j;
+    if (j==5) {
+      m_connection.send(req);
+      req.clear();
+      j = 0;
+    }
+  }
+  if (j > 0) {
+    m_connection.send(req);
+  }
+}
+
+void CrazyflieBroadcaster::sendDesCableStatesSetpoint(
+    const std::vector<desCableStates>& data)
+{
+  crtpDesCableStatesSetpointRequest req;
+  size_t j = 0;
+  for (const auto entry : data) {
+    // std::cout << "s " << (int)entry.id << std::endl;
+    req.add(entry.id, entry.mu_ref_x, entry.mu_ref_y, entry.mu_ref_z, entry.qid_ref_x, entry.qid_ref_y, entry.qid_ref_z);
+    ++j;
+    if (j==2) {
+      m_connection.send(req);
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      req.clear();
+      j = 0;
+    }
+  }
+  if (j > 0) {
+    m_connection.send(req);
+  }
 }
