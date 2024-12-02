@@ -776,8 +776,8 @@ public:
 
   void stop(uint8_t groupMask = 0);
 
-  // This is always in relative coordinates
-  void goTo(float x, float y, float z, float yaw, float duration, uint8_t groupMask = 0);
+  // using relative = false only makes sense for rare cases such as formation control
+  void goTo(float x, float y, float z, float yaw, float duration, bool relative = true, uint8_t groupMask = 0);
 
   // This is always in relative coordinates
   void startTrajectory(
@@ -834,6 +834,30 @@ public:
     float ax, float ay, float az,
     float qx, float qy, float qz, float qw,
     float rollRate, float pitchRate, float yawRate);
+
+  struct desCableAngles
+  {
+    uint8_t id;
+    float az;
+    float el;
+  };
+
+  void sendDesCableAnglesSetpoint(
+    const std::vector<desCableAngles>& data);
+
+  struct desCableStates
+  {
+    uint8_t id;
+    float mu_ref_x;
+    float mu_ref_y;
+    float mu_ref_z;
+    float qid_ref_x;
+    float qid_ref_y;
+    float qid_ref_z;
+  };
+
+  void sendDesCableStatesSetpoint(
+    const std::vector<desCableStates>& data);
 
 private:
   bitcraze::crazyflieLinkCpp::Connection m_connection;
