@@ -27,7 +27,7 @@ target_include_directories(crazyflie_cpp
 )
 
 target_link_libraries(crazyflie_cpp
-  PRIVATE
+  PUBLIC
     crazyflieLinkCpp
 )
 
