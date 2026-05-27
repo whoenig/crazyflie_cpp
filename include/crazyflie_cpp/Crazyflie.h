@@ -35,6 +35,29 @@ public:
 
 extern Logger EmptyLogger;
 
+namespace crazyflie_cpp_detail {
+
+inline bitcraze::crazyflieLinkCpp::Connection::Statistics subtractStatistics(
+  const bitcraze::crazyflieLinkCpp::Connection::Statistics& current,
+  const bitcraze::crazyflieLinkCpp::Connection::Statistics& previous)
+{
+  auto diff = [](const std::atomic_size_t& currentValue, const std::atomic_size_t& previousValue) {
+    const size_t current = currentValue.load();
+    const size_t previous = previousValue.load();
+    return current >= previous ? current - previous : current;
+  };
+
+  bitcraze::crazyflieLinkCpp::Connection::Statistics delta;
+  delta.sent_count = diff(current.sent_count, previous.sent_count);
+  delta.sent_ping_count = diff(current.sent_ping_count, previous.sent_ping_count);
+  delta.receive_count = diff(current.receive_count, previous.receive_count);
+  delta.enqueued_count = diff(current.enqueued_count, previous.enqueued_count);
+  delta.ack_count = diff(current.ack_count, previous.ack_count);
+  return delta;
+}
+
+} // namespace crazyflie_cpp_detail
+
 class Crazyflie
 {
 public:
@@ -141,7 +164,10 @@ public:
 
   bitcraze::crazyflieLinkCpp::Connection::Statistics connectionStatsDelta()
   {
-    return m_connection.statisticsDelta();
+    auto current = m_connection.statistics();
+    auto delta = crazyflie_cpp_detail::subtractStatistics(current, m_connectionStatsSnapshot);
+    m_connectionStatsSnapshot = current;
+    return delta;
   }
 
   // returns the URI for this Crazyflie
@@ -477,6 +503,7 @@ private:
   Logger& m_logger;
 
   bitcraze::crazyflieLinkCpp::Connection m_connection;
+  bitcraze::crazyflieLinkCpp::Connection::Statistics m_connectionStatsSnapshot;
 
   // latency measurements
   std::chrono::time_point<std::chrono::steady_clock> m_clock_start;
@@ -764,7 +791,10 @@ public:
 
   bitcraze::crazyflieLinkCpp::Connection::Statistics connectionStatsDelta()
   {
-    return m_connection.statisticsDelta();
+    auto current = m_connection.statistics();
+    auto delta = crazyflie_cpp_detail::subtractStatistics(current, m_connectionStatsSnapshot);
+    m_connectionStatsSnapshot = current;
+    return delta;
   }
 
   void sendArmingRequest(bool arm);
@@ -837,4 +867,5 @@ public:
 
 private:
   bitcraze::crazyflieLinkCpp::Connection m_connection;
+  bitcraze::crazyflieLinkCpp::Connection::Statistics m_connectionStatsSnapshot;
 };

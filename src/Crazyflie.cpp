@@ -37,6 +37,7 @@ Crazyflie::Crazyflie(
   , m_connection(link_uri)
   , m_clock_start(std::chrono::steady_clock::now())
   , m_latencyCounter(0)
+  , m_connectionStatsSnapshot(m_connection.statistics())
 {
 }
 
@@ -1219,6 +1220,7 @@ void Crazyflie::triggerLatencyMeasurement()
 CrazyflieBroadcaster::CrazyflieBroadcaster(
   const std::string& link_uri)
   : m_connection(link_uri)
+  , m_connectionStatsSnapshot(m_connection.statistics())
 {
 }
 
