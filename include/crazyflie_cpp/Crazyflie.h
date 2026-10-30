@@ -497,7 +497,7 @@ public:
     , m_callback(callback)
     , m_id(0)
   {
-    m_id = m_cf->registerLogBlock([=](const bitcraze::crazyflieLinkCpp::Packet& p, uint8_t s) { this->handleData(p, s); });
+    m_id = m_cf->registerLogBlock([this](const bitcraze::crazyflieLinkCpp::Packet& p, uint8_t s) { this->handleData(p, s); });
     crtpLogCreateBlockV2Request req(m_id);
     size_t s = 0;
     for (auto&& pair : variables) {
@@ -591,7 +591,7 @@ public:
     , m_callback(callback)
     , m_id(0)
   {
-    m_id = m_cf->registerLogBlock([=](const bitcraze::crazyflieLinkCpp::Packet& p, uint8_t s) { this->handleData(p, s); });
+    m_id = m_cf->registerLogBlock([this](const bitcraze::crazyflieLinkCpp::Packet& p, uint8_t s) { this->handleData(p, s); });
     crtpLogCreateBlockV2Request req(m_id);
     int i = 0;
     size_t s = 0;
